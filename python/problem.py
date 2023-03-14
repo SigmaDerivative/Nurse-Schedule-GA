@@ -146,7 +146,7 @@ class Problem:
 
                 # add patient to sequence
                 patient_visit_info = (
-                    f"{patient} ({arrival_time:.2f}-{self.patients[str_idx]['care_time']:.2f})"
+                    f"{patient} ({arrival_time:.2f}-{arrival_time + self.patients[str_idx]['care_time']:.2f})"
                     + f" [{self.patients[str_idx]['start_time']:.2f}-{self.patients[str_idx]['end_time']:.2f}]"
                 )
                 patient_sequence.append(patient_visit_info)
