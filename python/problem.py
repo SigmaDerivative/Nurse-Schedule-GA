@@ -1,9 +1,11 @@
 import json
 import time
+import itertools
 
 import numpy as np
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
+from numba import njit
 
 
 class Problem:
@@ -20,9 +22,25 @@ class Problem:
         self.capacity_nurse = self.data["capacity_nurse"]
         self.depot = self.data["depot"]
         self.patients = self.data["patients"]
+        self.numpy_patients = self.patients_to_numpy(self.patients)
         # assumes id 1-len(patients) are used
         self.nbr_patients = len(self.patients)
         self.travel_times = np.asarray(self.data["travel_times"])
+
+    def patients_to_numpy(self, patients: dict[str, dict[str, int]]) -> NDArray:
+        """Converts patients to numpy array."""
+        patients = [
+            [
+                patient["x_coord"],
+                patient["y_coord"],
+                patient["demand"],
+                patient["start_time"],
+                patient["end_time"],
+                patient["care_time"],
+            ]
+            for patient in patients.values()
+        ]
+        return np.asarray(patients)
 
     def visualize_problem(self) -> None:
         """Visualize the problem instance."""
@@ -36,79 +54,7 @@ class Problem:
             )
         plt.show()
 
-    def evaluate(
-        self, solution: NDArray, penalize_invalid: bool = False, timing: bool = False
-    ) -> float:
-        """Evalauates a solution.
-
-        Args:
-            solution (NDArray): A potential solution.
-            Solution is on format one row per nurse, with id for each patient visisted.
-
-        Returns:
-            float: fitness of the solution.
-        """
-        if timing:
-            start = time.time()
-
-        fitness = 0.0
-        is_valid = True
-        # assumes all patients are visited
-
-        # check nurse path
-        for nurse in solution:
-            # calculate used nurse capacity
-            nurse_used_capacity = 0
-            # calculate time
-            tot_time = 0
-            # add depot to start
-            prev_spot_idx = 0
-            # add patients to route
-            for patient in nurse:
-                str_idx = str(patient)
-
-                tot_time += self.travel_times[prev_spot_idx, patient]
-
-                # check if time window is met
-                # penalty is both added if arrival after end time and if service ends after end time
-                if tot_time < self.patients[str_idx]["start_time"]:
-                    # wait until start time
-                    tot_time = self.patients[str_idx]["start_time"]
-                elif tot_time > self.patients[str_idx]["end_time"]:
-                    # penalize if time window is not met
-                    if penalize_invalid:
-                        fitness += 1000
-                    is_valid = False
-
-                # add service time
-                tot_time += self.patients[str_idx]["care_time"]
-                # add used capacity
-                nurse_used_capacity += self.patients[str_idx]["demand"]
-
-                # penalize if time is after end time
-                if tot_time > self.patients[str_idx]["end_time"]:
-                    if penalize_invalid:
-                        fitness += 1000
-                    is_valid = False
-
-                # update prev spot
-                prev_spot_idx = patient
-
-            # penalize if capacity is exceeded
-            if nurse_used_capacity > self.capacity_nurse:
-                if penalize_invalid:
-                    fitness += 1000
-                is_valid = False
-
-            # add time to fitness
-            fitness += tot_time
-
-        if timing:
-            print(f"Evaluation time: {time.time() - start:.2f} seconds")
-
-        return fitness, is_valid
-
-    def visualize_solution(self, solution: NDArray) -> None:
+    def visualize_solution(self, solution: list) -> None:
         """Visualize a solution."""
         # plot depot
         plt.scatter(self.depot["x_coord"], self.depot["y_coord"], c="r")
@@ -135,7 +81,7 @@ class Problem:
 
         plt.show()
 
-    def print_solution(self, solution: NDArray) -> None:
+    def print_solution(self, solution: list) -> None:
         """Prints a solution on the desired format."""
 
         print()
@@ -195,14 +141,132 @@ class Problem:
             # space inbetween nurses
             print()
 
-        objective_value, is_valid = self.evaluate(solution, penalize_invalid=False)
+        objective_value, is_valid = numba_eval(
+            solution=solution,
+            travel_times=self.travel_times,
+            capacity_nurse=self.capacity_nurse,
+            patients=self.numpy_patients,
+            penalize_invalid=False,
+        )
 
         print("------------------------------------------------")
         print(f"Objective value (total duration): {objective_value}")
         print(f"Valid solution: {is_valid}")
 
 
-def generate_random_solution(problem: Problem) -> NDArray:
+def convert_and_eval(
+    solution: list,
+    travel_times: NDArray,
+    capacity_nurse: int,
+    patients: NDArray,
+    penalize_invalid: bool = False,
+) -> float:
+    """Converts a solution to numpy and evaluates it."""
+    before1 = time.perf_counter_ns()
+
+    # convert solution to numpy
+    np_sol = np.array(list(itertools.zip_longest(*solution, fillvalue=0))).T
+    np_sol = np_sol.astype(np.int32)
+
+    # get time of conversion
+    after1 = time.perf_counter_ns()
+    conv_time = after1 - before1
+
+    before2 = time.perf_counter_ns()
+
+    numba_eval(
+        solution=np_sol,
+        travel_times=travel_times,
+        capacity_nurse=capacity_nurse,
+        patients=patients,
+        penalize_invalid=penalize_invalid,
+    )
+
+    # get time of evaluation
+    after2 = time.perf_counter_ns()
+    numba_time = after2 - before2
+
+    return conv_time, numba_time
+
+
+@njit
+def numba_eval(
+    solution: NDArray,
+    travel_times: NDArray,
+    capacity_nurse: int,
+    patients: NDArray,
+    penalize_invalid: bool = False,
+) -> float:
+    """Evalauates a solution.
+
+    Args:
+        solution (NDArray): A potential solution.
+        Solution is on format one row per nurse, with id for each patient visisted.
+
+    Returns:
+        float: fitness of the solution.
+    """
+
+    fitness = 0.0
+    is_valid = True
+    # assumes all patients are visited
+
+    # check nurse path
+    for nurse_path in solution:
+        # calculate used nurse capacity
+        nurse_used_capacity = 0
+        # calculate time
+        tot_time = 0.0
+        # add depot to start
+        prev_spot_idx = 0
+
+        # get used nurse_path
+        tmp = nurse_path
+        used_nurse_path = tmp[np.where(tmp != 0)]
+
+        # add patients to route
+        for patient_id in used_nurse_path:
+
+            tot_time += travel_times[prev_spot_idx, patient_id]
+
+            # check if time window is met
+            # penalty is both added if arrival after end time and if service ends after end time
+            if tot_time < patients[patient_id - 1, 3]:
+                # wait until start time
+                tot_time = patients[patient_id - 1, 3]
+            elif tot_time > patients[patient_id - 1, 4]:
+                # penalize if time window is not met
+                if penalize_invalid:
+                    fitness += 1000
+                is_valid = False
+
+            # add service time
+            tot_time += patients[patient_id - 1, 5]
+            # add used capacity
+            nurse_used_capacity += patients[patient_id - 1, 2]
+
+            # penalize if time is after end time
+            if tot_time > patients[patient_id - 1, 4]:
+                if penalize_invalid:
+                    fitness += 1000
+                is_valid = False
+
+            # update prev spot
+            prev_spot_idx = patient_id
+
+        # penalize if capacity is exceeded
+        if nurse_used_capacity > capacity_nurse:
+            if penalize_invalid:
+                fitness += 1000
+            is_valid = False
+
+        # add time to fitness
+        fitness += tot_time
+
+    return fitness, is_valid
+
+
+def generate_random_solution(problem: Problem) -> list:
     """Generate a random solution."""
     patient_ids = list(problem.patients.keys())
     values = [[] for _ in range(problem.nbr_nurses)]
@@ -210,7 +274,7 @@ def generate_random_solution(problem: Problem) -> NDArray:
         nurse = np.random.randint(0, problem.nbr_nurses)
         values[nurse].append(int(patient_ids.pop()))
     # return as numpy array
-    return [np.asarray(i) for i in values]
+    return [i for i in values]
 
 
 def main():
@@ -223,12 +287,39 @@ def main():
     print(f"patients {problem.patients}")
     print(f"travel_times {problem.travel_times}")
     print(f"nbr_patients {problem.nbr_patients}")
+    print(f"numpy_patients {problem.numpy_patients}")
     # problem.visualize_problem()
 
     # generate random solution
-    sol = generate_random_solution(problem)
-    problem.print_solution(sol)
-    problem.visualize_solution(sol)
+    # sol = generate_random_solution(problem)
+    # problem.print_solution(sol)
+    # problem.visualize_solution(sol)
+
+    # evaluate running timing of solution
+    conv_times = []
+    numba_times = []
+    gen_times = []
+    for _ in range(10_000):
+        before = time.perf_counter_ns()
+        sol = generate_random_solution(problem)
+        after = time.perf_counter_ns()
+        generation_time = after - before
+
+        conv_time, numba_time = convert_and_eval(
+            solution=sol,
+            travel_times=problem.travel_times,
+            capacity_nurse=problem.capacity_nurse,
+            patients=problem.numpy_patients,
+            penalize_invalid=False,
+        )
+
+        gen_times.append(generation_time)
+        conv_times.append(conv_time)
+        numba_times.append(numba_time)
+
+    print(f"Average generation time: {np.mean(gen_times[1:])} ns")
+    print(f"Average convert time: {np.mean(conv_times[1:])} ns")
+    print(f"Average numba time: {np.mean(numba_times[1:])} ns")
 
     # Run the GA
     # ga = GA(problem, data)

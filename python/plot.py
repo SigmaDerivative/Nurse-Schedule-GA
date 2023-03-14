@@ -35,3 +35,33 @@ def plot_entropy(name: str, num_ep: int, entropies: list[float]):
     )
     plt.legend()
     plt.savefig(name)
+
+
+#     if (episode + 1) % plot_ep == 0:
+#         plot(
+#             maximize=maximize,
+#             name=f"plots/{maximize}-{crowding}.png"
+#             if maximize == "g"
+#             else f"plots/{episode}-{maximize}-{crowding}.png",
+#             num_ep=episode + 1,
+#             avg_fit=average_fitnesses,
+#             pop=population,
+#         )
+#         plot_entropy(
+#             name=f"plots/entropy-{maximize}-{crowding}.png",
+#             num_ep=episode + 1,
+#             entropies=entropies,
+#         )
+
+# plot(
+#     maximize=maximize,
+#     name=f"plots/{maximize}-{crowding}.png",
+#     num_ep=num_ep,
+#     avg_fit=average_fitnesses,
+#     pop=population,
+# )
+# plot_entropy(
+#     name=f"plots/entropy-{maximize}-{crowding}.png",
+#     num_ep=num_ep,
+#     entropies=entropies,
+# )
