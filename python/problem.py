@@ -35,7 +35,7 @@ class Problem:
             )
         plt.show()
 
-    def evaluate(self, solution: NDArray) -> float:
+    def evaluate(self, solution: NDArray, penalize_invalid: bool = False) -> float:
         """Evalauates a solution.
 
         Args:
@@ -45,8 +45,59 @@ class Problem:
         Returns:
             float: fitness of the solution.
         """
-        # TODO
-        return 0.0
+        fitness = 0.0
+        is_valid = True
+        # assumes all patients are visited
+
+        # check nurse path
+        for nurse in solution:
+            # calculate used nurse capacity
+            nurse_used_capacity = 0
+            # calculate time
+            time = 0
+            # add depot to start
+            prev_spot_idx = 0
+            # add patients to route
+            for patient in nurse:
+                str_idx = str(patient)
+
+                time += self.travel_times[prev_spot_idx, patient]
+
+                # check if time window is met
+                # penalty is both added if arrival after end time and if service ends after end time
+                if time < self.patients[str_idx]["start_time"]:
+                    # wait until start time
+                    time = self.patients[str_idx]["start_time"]
+                elif time > self.patients[str_idx]["end_time"]:
+                    # penalize if time window is not met
+                    if penalize_invalid:
+                        fitness += 1000
+                    is_valid = False
+
+                # add service time
+                time += self.patients[str_idx]["care_time"]
+                # add used capacity
+                nurse_used_capacity += self.patients[str_idx]["demand"]
+
+                # penalize if time is after end time
+                if time > self.patients[str_idx]["end_time"]:
+                    if penalize_invalid:
+                        fitness += 1000
+                    is_valid = False
+
+                # update prev spot
+                prev_spot_idx = patient
+
+            # penalize if capacity is exceeded
+            if nurse_used_capacity > self.capacity_nurse:
+                if penalize_invalid:
+                    fitness += 1000
+                is_valid = False
+
+            # add time to fitness
+            fitness += time
+
+        return fitness, is_valid
 
     def visualize_solution(self, solution: NDArray) -> None:
         """Visualize a solution."""
@@ -77,11 +128,71 @@ class Problem:
 
     def print_solution(self, solution: NDArray) -> None:
         """Prints a solution on the desired format."""
-        # TODO
-        pass
+
+        print()
+        print(f"Nurse capacity: {self.capacity_nurse}")
+        print()
+        print(f"Depot return time: {self.depot['return_time']}")
+        print("------------------------------------------------")
+        # check nurse path
+        for nurse_idx, nurse_patients in enumerate(solution):
+            # calculate used nurse capacity
+            nurse_used_capacity = 0
+            # calculate time
+            time = 0
+            # add depot to start
+            prev_spot_idx = 0
+            # setup patient sequence, with start used demand
+            patient_sequence = ["D(0)"]
+            # add patients to route
+            for patient in nurse_patients:
+                str_idx = str(patient)
+
+                # get travel time
+                travel_time = self.travel_times[prev_spot_idx, patient]
+                time += travel_time
+                arrival_time = time
+
+                # check if time window is met
+                # penalty is both added if arrival after end time and if service ends after end time
+                if time < self.patients[str_idx]["start_time"]:
+                    # wait until start time
+                    time = self.patients[str_idx]["start_time"]
+
+                # add service time
+                time += self.patients[str_idx]["care_time"]
+                # add used capacity
+                nurse_used_capacity += self.patients[str_idx]["demand"]
+
+                # update prev spot
+                prev_spot_idx = patient
+
+                # add patient to sequence
+                patient_visit_info = (
+                    f"{patient} ({arrival_time:.2f}-{self.patients[str_idx]['care_time']:.2f})"
+                    + f" [{self.patients[str_idx]['start_time']:.2f}-{self.patients[str_idx]['end_time']:.2f}]"
+                )
+                patient_sequence.append(patient_visit_info)
+                # add current used demand
+                patient_sequence.append(f"D({nurse_used_capacity})")
+
+            print(
+                f"Nurse {nurse_idx}"
+                + f" | {time}"
+                + f" | {nurse_used_capacity}"
+                + f" | {patient_sequence}"
+            )
+            # space inbetween nurses
+            print()
+
+        objective_value, is_valid = self.evaluate(solution, penalize_invalid=False)
+
+        print("------------------------------------------------")
+        print(f"Objective value (total duration): {objective_value}")
+        print(f"Valid solution: {is_valid}")
 
 
-if __name__ == "__main__":
+def main():
     # Load the json file
     problem = Problem("data/train_0.json")
     print(f"instance_name {problem.instance_name}")
@@ -93,19 +204,22 @@ if __name__ == "__main__":
     print(f"nbr_patients {problem.nbr_patients}")
     # problem.visualize_problem()
 
-    sol = np.empty(5, object)
-    values = [
-        [1, 2],
-        [3, 4, 5],
-        [6, 7, 8, 9],
-        [10, 11, 12, 13, 14],
-        [15, 16, 17, 18, 19, 20],
-    ]
+    # generate random solution
+    sol = np.empty(problem.nbr_nurses, object)
+    patient_ids = list(problem.patients.keys())
+    values = [[] for _ in range(problem.nbr_nurses)]
+    while patient_ids:
+        nurse = np.random.randint(0, problem.nbr_nurses)
+        values[nurse].append(int(patient_ids.pop()))
+
     sol = [np.asarray(i) for i in values]
-    fitness = problem.evaluate(sol)
-    print(f"fitness {fitness}")
+    problem.print_solution(sol)
     problem.visualize_solution(sol)
 
     # Run the GA
     # ga = GA(problem, data)
     # ga.run()
+
+
+if __name__ == "__main__":
+    main()
