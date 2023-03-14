@@ -1,4 +1,5 @@
 import json
+import time
 
 import numpy as np
 from numpy.typing import NDArray
@@ -35,7 +36,9 @@ class Problem:
             )
         plt.show()
 
-    def evaluate(self, solution: NDArray, penalize_invalid: bool = False) -> float:
+    def evaluate(
+        self, solution: NDArray, penalize_invalid: bool = False, timing: bool = False
+    ) -> float:
         """Evalauates a solution.
 
         Args:
@@ -45,6 +48,9 @@ class Problem:
         Returns:
             float: fitness of the solution.
         """
+        if timing:
+            start = time.time()
+
         fitness = 0.0
         is_valid = True
         # assumes all patients are visited
@@ -54,33 +60,33 @@ class Problem:
             # calculate used nurse capacity
             nurse_used_capacity = 0
             # calculate time
-            time = 0
+            tot_time = 0
             # add depot to start
             prev_spot_idx = 0
             # add patients to route
             for patient in nurse:
                 str_idx = str(patient)
 
-                time += self.travel_times[prev_spot_idx, patient]
+                tot_time += self.travel_times[prev_spot_idx, patient]
 
                 # check if time window is met
                 # penalty is both added if arrival after end time and if service ends after end time
-                if time < self.patients[str_idx]["start_time"]:
+                if tot_time < self.patients[str_idx]["start_time"]:
                     # wait until start time
-                    time = self.patients[str_idx]["start_time"]
-                elif time > self.patients[str_idx]["end_time"]:
+                    tot_time = self.patients[str_idx]["start_time"]
+                elif tot_time > self.patients[str_idx]["end_time"]:
                     # penalize if time window is not met
                     if penalize_invalid:
                         fitness += 1000
                     is_valid = False
 
                 # add service time
-                time += self.patients[str_idx]["care_time"]
+                tot_time += self.patients[str_idx]["care_time"]
                 # add used capacity
                 nurse_used_capacity += self.patients[str_idx]["demand"]
 
                 # penalize if time is after end time
-                if time > self.patients[str_idx]["end_time"]:
+                if tot_time > self.patients[str_idx]["end_time"]:
                     if penalize_invalid:
                         fitness += 1000
                     is_valid = False
@@ -95,7 +101,10 @@ class Problem:
                 is_valid = False
 
             # add time to fitness
-            fitness += time
+            fitness += tot_time
+
+        if timing:
+            print(f"Evaluation time: {time.time() - start:.2f} seconds")
 
         return fitness, is_valid
 
@@ -130,6 +139,7 @@ class Problem:
         """Prints a solution on the desired format."""
 
         print()
+        print("SOLUTION")
         print(f"Nurse capacity: {self.capacity_nurse}")
         print()
         print(f"Depot return time: {self.depot['return_time']}")
@@ -139,7 +149,7 @@ class Problem:
             # calculate used nurse capacity
             nurse_used_capacity = 0
             # calculate time
-            time = 0
+            tot_time = 0
             # add depot to start
             prev_spot_idx = 0
             # setup patient sequence, with start used demand
@@ -150,17 +160,17 @@ class Problem:
 
                 # get travel time
                 travel_time = self.travel_times[prev_spot_idx, patient]
-                time += travel_time
-                arrival_time = time
+                tot_time += travel_time
+                arrival_time = tot_time
 
                 # check if time window is met
                 # penalty is both added if arrival after end time and if service ends after end time
-                if time < self.patients[str_idx]["start_time"]:
+                if tot_time < self.patients[str_idx]["start_time"]:
                     # wait until start time
-                    time = self.patients[str_idx]["start_time"]
+                    tot_time = self.patients[str_idx]["start_time"]
 
                 # add service time
-                time += self.patients[str_idx]["care_time"]
+                tot_time += self.patients[str_idx]["care_time"]
                 # add used capacity
                 nurse_used_capacity += self.patients[str_idx]["demand"]
 
@@ -178,7 +188,7 @@ class Problem:
 
             print(
                 f"Nurse {nurse_idx}"
-                + f" | {time}"
+                + f" | {tot_time}"
                 + f" | {nurse_used_capacity}"
                 + f" | {patient_sequence}"
             )
@@ -190,6 +200,17 @@ class Problem:
         print("------------------------------------------------")
         print(f"Objective value (total duration): {objective_value}")
         print(f"Valid solution: {is_valid}")
+
+
+def generate_random_solution(problem: Problem) -> NDArray:
+    """Generate a random solution."""
+    patient_ids = list(problem.patients.keys())
+    values = [[] for _ in range(problem.nbr_nurses)]
+    while patient_ids:
+        nurse = np.random.randint(0, problem.nbr_nurses)
+        values[nurse].append(int(patient_ids.pop()))
+    # return as numpy array
+    return [np.asarray(i) for i in values]
 
 
 def main():
@@ -205,14 +226,7 @@ def main():
     # problem.visualize_problem()
 
     # generate random solution
-    sol = np.empty(problem.nbr_nurses, object)
-    patient_ids = list(problem.patients.keys())
-    values = [[] for _ in range(problem.nbr_nurses)]
-    while patient_ids:
-        nurse = np.random.randint(0, problem.nbr_nurses)
-        values[nurse].append(int(patient_ids.pop()))
-
-    sol = [np.asarray(i) for i in values]
+    sol = generate_random_solution(problem)
     problem.print_solution(sol)
     problem.visualize_solution(sol)
 
