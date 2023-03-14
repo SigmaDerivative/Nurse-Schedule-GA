@@ -188,8 +188,16 @@ def solution_to_numpy(solution: list) -> NDArray:
     Returns:
         NDArray: A numpy array, where each row is a nurse route.
     """
+    # convert to numpy array
     solution_numpy = np.array(list(itertools.zip_longest(*solution, fillvalue=0))).T
+    # pad with zeros
+    num_patients = np.max(solution_numpy)
+    pad_size = num_patients - solution_numpy.shape[1]
+    solution_numpy = np.pad(
+        solution_numpy, [(0, 0), (0, pad_size)], mode="constant", constant_values=0
+    )
 
+    # convert to int
     solution_numpy = solution_numpy.astype(np.int32)
 
     return solution_numpy
