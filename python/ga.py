@@ -1,7 +1,6 @@
 import time
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class Individual:
@@ -197,27 +196,6 @@ def duel(can1: Individual, can2: Individual, maximize: bool) -> Individual:
     return can2
 
 
-def plot(
-    maximize: bool, name: str, num_ep: int, avg_fit: list[float], pop: list[Individual]
-):
-    plt.clf()
-    if maximize:
-        plt.plot(np.arange(num_ep), avg_fit, label="RMSE feature selected")
-        plt.plot(
-            np.arange(num_ep),
-            np.ones(num_ep) * linreg.get_fitness(data[:, :101], data[:, -1]),
-            c="r",
-            label="base RMSE",
-        )
-        # plt.plot(np.arange(num_ep), np.ones(num_ep) * 0.124, c="g", label="0.124")
-        plt.legend()
-    else:
-        plt.plot(np.arange(0, 128, 0.5), np.sin(np.arange(0, 128, 0.5)))
-        for i in pop:
-            plt.scatter(i.get_solution(), np.sin(i.get_solution()), c="r")
-    plt.savefig(name)
-
-
 def entropy(pop: list[Individual], bitstr_size: int):
     bitstr_numbers = np.zeros(bitstr_size)
     # adds together all genomes for every candidate
@@ -233,24 +211,12 @@ def entropy(pop: list[Individual], bitstr_size: int):
     return H
 
 
-def plot_entropy(name: str, num_ep: int, entropies: list[float]):
-    plt.clf()
-    plt.plot(
-        np.arange(num_ep),
-        entropies,
-        c="r",
-        label="entropy",
-    )
-    plt.legend()
-    plt.savefig(name)
-
-
 def run(
     maximize: bool,
     pop_size: int,
     num_ep: int,
     bitstr_size: int,
-    plot_ep: int,
+    # plot_ep: int,
     num_parents: int,
     num_children: int,
     deterministic: bool,
@@ -310,59 +276,64 @@ def run(
 
         entropies.append(entropy(pop=population, bitstr_size=bitstr_size))
 
-        if (episode + 1) % plot_ep == 0:
-            plot(
-                maximize=maximize,
-                name=f"plots/{maximize}-{crowding}.png"
-                if maximize == "g"
-                else f"plots/{episode}-{maximize}-{crowding}.png",
-                num_ep=episode + 1,
-                avg_fit=average_fitnesses,
-                pop=population,
-            )
-            plot_entropy(
-                name=f"plots/entropy-{maximize}-{crowding}.png",
-                num_ep=episode + 1,
-                entropies=entropies,
-            )
+    #     if (episode + 1) % plot_ep == 0:
+    #         plot(
+    #             maximize=maximize,
+    #             name=f"plots/{maximize}-{crowding}.png"
+    #             if maximize == "g"
+    #             else f"plots/{episode}-{maximize}-{crowding}.png",
+    #             num_ep=episode + 1,
+    #             avg_fit=average_fitnesses,
+    #             pop=population,
+    #         )
+    #         plot_entropy(
+    #             name=f"plots/entropy-{maximize}-{crowding}.png",
+    #             num_ep=episode + 1,
+    #             entropies=entropies,
+    #         )
 
-    plot(
-        maximize=maximize,
-        name=f"plots/{maximize}-{crowding}.png",
-        num_ep=num_ep,
-        avg_fit=average_fitnesses,
-        pop=population,
-    )
-    plot_entropy(
-        name=f"plots/entropy-{maximize}-{crowding}.png",
-        num_ep=num_ep,
-        entropies=entropies,
-    )
+    # plot(
+    #     maximize=maximize,
+    #     name=f"plots/{maximize}-{crowding}.png",
+    #     num_ep=num_ep,
+    #     avg_fit=average_fitnesses,
+    #     pop=population,
+    # )
+    # plot_entropy(
+    #     name=f"plots/entropy-{maximize}-{crowding}.png",
+    #     num_ep=num_ep,
+    #     entropies=entropies,
+    # )
 
 
 if __name__ == "__main__":
-# CONFIG
-# POPULATION_SIZE = 100
-# NUM_EPISODES = 100
-# BITSTRING_SIZE = 15
+    # CONFIG
+    POPULATION_SIZE = 100
+    NUM_EPISODES = 100
+    BITSTRING_SIZE = 15
 
-# PLOT_EP = 20
+    MUTATE_MIN = 0
+    MUTATE_MAX = 7
+    GENOME_MUTATE_CHANCE = 0.4
 
-# MUTATE_MIN = 0
-# MUTATE_MAX = 7
-# GENOME_MUTATE_CHANCE = 0.4
+    maximize = True
 
-# maximize = True
+    # PLOT_EP = 20
 
-# run(
-#     maximize=maximize,
-#     pop_size=POPULATION_SIZE,
-#     num_ep=NUM_EPISODES,
-#     bitstr_size=BITSTRING_SIZE,
-#     plot_ep=PLOT_EP,
-#     num_parents=50,
-#     num_children=50,
-#     deterministic=False,
-#     ranked=True,
-#     crowding=False,
-# )
+    start = time.time()
+
+    run(
+        maximize=maximize,
+        pop_size=POPULATION_SIZE,
+        num_ep=NUM_EPISODES,
+        bitstr_size=BITSTRING_SIZE,
+        # plot_ep=PLOT_EP,
+        num_parents=50,
+        num_children=50,
+        deterministic=False,
+        ranked=True,
+        crowding=False,
+    )
+
+    end = time.time()
+    print(f"time used {end-start}s")
