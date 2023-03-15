@@ -2,145 +2,128 @@ import time
 
 import numpy as np
 from numpy.typing import NDArray
+from tqdm import tqdm
 
 from solution_utils import solution_to_list, solution_to_numpy, generate_random_solution
 from problem import Problem, evaluate
+from population_manage import elitist
 
 problem = Problem("data/train_0.json")
-n_nurses = problem.nbr_nurses
-n_patients = problem.nbr_patients
 
 
-class Individual:
-    def __init__(self) -> None:
-        solution = generate_random_solution(n_nurses=n_nurses, n_patients=n_patients)
-        self.dna = solution
-        self.fitness = evaluate(
-            solution=solution,
-            travel_times=problem.travel_times,
-            capacity_nurse=problem.capacity_nurse,
-            patients=problem.numpy_patients,
+def generate_random_population(size: int) -> tuple[NDArray, NDArray, NDArray]:
+    """Generate a random population.
+
+    Args:
+        n_nurses (int): determine size of genome
+        NDArray (int): determine size of genome
+        size (int): number of individuals in population
+
+    Returns:
+        tuple[NDArray, NDArray]: genomes, fitness, valids
+    """
+    genome = generate_random_solution(
+        n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
+    )
+    fitness, valid = evaluate(
+        genome,
+        travel_times=problem.travel_times,
+        capacity_nurse=problem.capacity_nurse,
+        patients=problem.numpy_patients,
+        penalize_invalid=True,
+    )
+    genome = genome[np.newaxis, :]
+
+    for _ in range(1, size):
+        genome_ = generate_random_solution(
+            n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
+        )
+        fitness_, valid_ = evaluate(
+            genome_,
+            problem.travel_times,
+            problem.capacity_nurse,
+            problem.numpy_patients,
             penalize_invalid=True,
         )
+        genome_ = genome_[np.newaxis, :]
+        genome = np.vstack((genome, genome_))
+        fitness = np.vstack((fitness, fitness_))
+        valid = np.vstack((valid, valid_))
+
+    return genome, fitness, valid
 
 
 class GeneticAlgorithm:
     def __init__(self, size: int) -> None:
-        self.population = self.create_population(size)
+        genomes, fitness, valids = generate_random_population(size=size)
+        self.genomes = genomes
+        self.fitness = fitness
+        self.valids = valids
         self.size = size
-        self.epoch = 0
+        self.epoch_number = 0
 
-    def create_population(
-        self,
-        size: int,
-    ) -> list[Individual]:
-        return [Individual() for _ in range(size)]
-
-    def parent_selection(self, population: NDArray, num_parents: int) -> NDArray:
+    def sort_population_(self) -> None:
         # sort population
-        population.sort(key=lambda x: x.fitness, reverse=True)
-        # return the two first
-        return population[:num_parents]
-
-    def crossover(self):
-        pass
-
-    def mate(self):
-        pass
-
-    def tournament(population: list[Individual], pop_size: int) -> list[Individual]:
-        population.sort(key=lambda x: x.fitness)
-
-        # return survivors
-        return population[:pop_size]
-
-    def crowding_tournament(
-        parents: list[Individual], children: list[Individual]
-    ) -> list[Individual]:
-        pass
-
-    def duel(can1: Individual, can2: Individual) -> Individual:
-        if can1.fitness > can2.fitness:
-            return can2
-        return can1
+        idx = np.argsort(self.fitness[:, 0])
+        self.genomes = self.genomes[idx]
+        self.fitness = self.fitness[idx]
+        self.valids = self.valids[idx]
 
     def epoch(
-        num_parents: int,
-        num_children: int,
-        deterministic: bool,
-        ranked: bool,
-        crowding: bool,
-    ):
-        average_fitnesses = []
-
-        average_fitness = np.mean(np.array([x.fitness for x in self.population]))
-        # display average fitness
-        print(self.epoch, "average", average_fitness)
-        # append to list for plotting
-        average_fitnesses.append(average_fitness)
-        # select best parents
-        parents = parent_selection(
-            population=population, num_parents=num_parents, maximize=maximize
+        self,
+        num_survivors: int,
+    ) -> None:
+        # survival of the fittest
+        genomes, fitness, valids = elitist(
+            genomes=self.genomes,
+            fitness=self.fitness,
+            valids=self.valids,
+            num_elites=num_survivors,
         )
 
-        if crowding:
-            children = crossover(
-                parents,
-                bitstr_size=bitstr_size,
-                num_children=num_children,
-                deterministic=True,
-                ranked=False,
-                maximize=maximize,
-            )
-
-            survivors = crowding_tournament(parents, children, maximize)
-        else:
-            # perform crossover to get children
-            children = crossover(
-                parents,
-                bitstr_size=bitstr_size,
-                num_children=num_children,
-                deterministic=deterministic,
-                ranked=ranked,
-                maximize=maximize,
-            )
-
-            # get survivors
-            survivors = tournament(
-                population=np.append(population, children).tolist(),
-                pop_size=pop_size,
-                maximize=maximize,
-            )
+        # create new individuals
+        n = self.size - num_survivors
+        new_genomes, new_fitness, new_valids = generate_random_population(size=n)
 
         # update population
-        population = survivors
+        genomes = np.vstack((genomes, new_genomes))
+        fitness = np.vstack((fitness, new_fitness))
+        valids = np.vstack((valids, new_valids))
+
+        self.genomes = genomes
+        self.fitness = fitness
+        self.valids = valids
+
+        # update epoch number
+        self.epoch_number += 1
+
+
+def main(pop_size: int):
+    ga = GeneticAlgorithm(size=pop_size)
+
+    for _ in tqdm(range(10_000)):
+        ga.epoch(num_survivors=25)
+
+    ga.sort_population_()
+
+    print(ga.genomes.shape, ga.fitness.shape, ga.valids.shape)
+
+
+def timing():
+    times = []
+    for i in range(100):
+        start = time.perf_counter()
+
+        ga = GeneticAlgorithm(size=POPULATION_SIZE)
+
+        end = time.perf_counter()
+        used_time = end - start
+        times.append(used_time)
+    print("mean time:", np.mean(times[1:]), "s")
 
 
 if __name__ == "__main__":
     # CONFIG
     POPULATION_SIZE = 100
-    NUM_EPISODES = 100
 
-    MUTATE_MIN = 0
-    MUTATE_MAX = 7
-    GENOME_MUTATE_CHANCE = 0.4
-
-    MAXIMIZE = True
-
-    start = time.perf_counter()
-
-    run(
-        maximize=MAXIMIZE,
-        pop_size=POPULATION_SIZE,
-        num_ep=NUM_EPISODES,
-        bitstr_size=BITSTRING_SIZE,
-        # plot_ep=PLOT_EP,
-        num_parents=50,
-        num_children=50,
-        deterministic=False,
-        ranked=True,
-        crowding=False,
-    )
-
-    end = time.perf_counter()
-    print(f"time used {end-start}s")
+    main(pop_size=POPULATION_SIZE)
