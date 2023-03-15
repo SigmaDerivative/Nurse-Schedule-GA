@@ -81,3 +81,36 @@ def generate_random_solution(n_nurses: int, n_patients: int) -> NDArray:
     solution = solution.reshape((n_nurses, n_patients))
 
     return solution
+
+
+@njit
+def generate_random_population(size: int, n_nurses: int, n_patients: int) -> NDArray:
+    """Generate a random population.
+
+    Args:
+        size (int): number of individuals in population
+        n_nurses (int): determine size of genome
+        n_patients (int): determine size of genome
+
+    Returns:
+        NDArray: genomes
+    """
+    patient_ids = np.arange(1, n_patients + 1)
+    genome_ = np.zeros((size * n_nurses * n_patients), dtype=np.int32)
+
+    for idx in range(size):
+        # Choose random indices to insert values from
+        indices = (
+            np.random.choice(
+                np.arange(n_nurses * n_patients), size=n_patients, replace=False
+            )
+            + idx * n_nurses * n_patients
+        )
+
+        # Insert values from patient_ids into zeros
+        genome_[indices] = patient_ids
+
+    # Reshape
+    genomes = genome_.reshape((size, n_nurses, n_patients))
+
+    return genomes

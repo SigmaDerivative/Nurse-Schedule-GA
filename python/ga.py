@@ -1,61 +1,46 @@
 import time
+import cProfile, pstats
 
 import numpy as np
 from numpy.typing import NDArray
 from tqdm import tqdm
+from numba import njit
 
-from solution_utils import solution_to_list, solution_to_numpy, generate_random_solution
+from solution_utils import (
+    generate_random_population,
+    solution_to_list,
+    solution_to_numpy,
+)
 from problem import Problem, evaluate
-from population_manage import elitist
+from population_manage import elitist, sort_population
 
 problem = Problem("data/train_0.json")
+nbr_nurses = problem.nbr_nurses
+nbr_patients = problem.nbr_patients
+travel_times = problem.travel_times
+capacity_nurse = problem.capacity_nurse
+numpy_patients = problem.numpy_patients
 
 
-def generate_random_population(size: int) -> tuple[NDArray, NDArray, NDArray]:
-    """Generate a random population.
-
-    Args:
-        n_nurses (int): determine size of genome
-        NDArray (int): determine size of genome
-        size (int): number of individuals in population
-
-    Returns:
-        tuple[NDArray, NDArray]: genomes, fitness, valids
-    """
-    genome = generate_random_solution(
-        n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
-    )
-    fitness, valid = evaluate(
-        genome,
-        travel_times=problem.travel_times,
-        capacity_nurse=problem.capacity_nurse,
-        patients=problem.numpy_patients,
-        penalize_invalid=True,
-    )
-    genome = genome[np.newaxis, :]
-
-    for _ in range(1, size):
-        genome_ = generate_random_solution(
-            n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
-        )
+@njit
+def evaluate_population(genomes: NDArray) -> NDArray:
+    fitness = np.empty((genomes.shape[0], 1), dtype=np.float64)
+    valid = np.empty((genomes.shape[0], 1), dtype=np.bool_)
+    for idx, genome in enumerate(genomes):
         fitness_, valid_ = evaluate(
-            genome_,
-            problem.travel_times,
-            problem.capacity_nurse,
-            problem.numpy_patients,
-            penalize_invalid=True,
+            genome, travel_times, capacity_nurse, numpy_patients, penalize_invalid=True
         )
-        genome_ = genome_[np.newaxis, :]
-        genome = np.vstack((genome, genome_))
-        fitness = np.vstack((fitness, fitness_))
-        valid = np.vstack((valid, valid_))
-
-    return genome, fitness, valid
+        fitness[idx, 0] = fitness_
+        valid[idx, 0] = valid_
+    return fitness, valid
 
 
 class GeneticAlgorithm:
     def __init__(self, size: int) -> None:
-        genomes, fitness, valids = generate_random_population(size=size)
+        genomes = generate_random_population(
+            size=size, n_nurses=nbr_nurses, n_patients=nbr_patients
+        )
+        fitness, valids = evaluate_population(genomes)
         self.genomes = genomes
         self.fitness = fitness
         self.valids = valids
@@ -63,18 +48,21 @@ class GeneticAlgorithm:
         self.epoch_number = 0
 
     def sort_population_(self) -> None:
-        # sort population
-        idx = np.argsort(self.fitness[:, 0])
-        self.genomes = self.genomes[idx]
-        self.fitness = self.fitness[idx]
-        self.valids = self.valids[idx]
+        genomes, fitness, valids = sort_population(
+            genomes=self.genomes,
+            fitness=self.fitness,
+            valids=self.valids,
+        )
+        self.genomes = genomes
+        self.fitness = fitness
+        self.valids = valids
 
     def epoch(
         self,
         num_survivors: int,
     ) -> None:
         # survival of the fittest
-        genomes, fitness, valids = elitist(
+        surviver_genomes, surviver_fitness, surviver_valids = elitist(
             genomes=self.genomes,
             fitness=self.fitness,
             valids=self.valids,
@@ -83,13 +71,15 @@ class GeneticAlgorithm:
 
         # create new individuals
         n = self.size - num_survivors
-        new_genomes, new_fitness, new_valids = generate_random_population(size=n)
+        new_genomes = generate_random_population(
+            size=n, n_nurses=nbr_nurses, n_patients=nbr_patients
+        )
+        new_fitness, new_valids = evaluate_population(new_genomes)
 
         # update population
-        genomes = np.vstack((genomes, new_genomes))
-        fitness = np.vstack((fitness, new_fitness))
-        valids = np.vstack((valids, new_valids))
-
+        genomes = np.vstack((surviver_genomes, new_genomes))
+        fitness = np.vstack((surviver_fitness, new_fitness))
+        valids = np.vstack((surviver_valids, new_valids))
         self.genomes = genomes
         self.fitness = fitness
         self.valids = valids
@@ -98,15 +88,48 @@ class GeneticAlgorithm:
         self.epoch_number += 1
 
 
+@njit
+def njit_run(size: int, num_epochs: int, num_survivors: int) -> None:
+    genomes = generate_random_population(
+        size=size, n_nurses=nbr_nurses, n_patients=nbr_patients
+    )
+    fitness, valids = evaluate_population(genomes)
+
+    for _ in range(num_epochs):
+        # survival of the fittest
+        surviver_genomes, surviver_fitness, surviver_valids = elitist(
+            genomes=genomes,
+            fitness=fitness,
+            valids=valids,
+            num_elites=num_survivors,
+        )
+
+        # create new individuals
+        n = size - num_survivors
+        new_genomes = generate_random_population(
+            size=n, n_nurses=nbr_nurses, n_patients=nbr_patients
+        )
+        new_fitness, new_valids = evaluate_population(new_genomes)
+
+        # update population
+        genomes[:num_survivors] = surviver_genomes
+        genomes[num_survivors:] = new_genomes
+        fitness[:num_survivors] = surviver_fitness
+        fitness[num_survivors:] = new_fitness
+        valids[:num_survivors] = surviver_valids
+        valids[num_survivors:] = new_valids
+
+
 def main(pop_size: int):
-    ga = GeneticAlgorithm(size=pop_size)
+    # ga = GeneticAlgorithm(size=pop_size)
 
-    for _ in tqdm(range(10_000)):
-        ga.epoch(num_survivors=25)
+    # for _ in tqdm(range(10_000)):
+    #     ga.epoch(num_survivors=25)
 
-    ga.sort_population_()
+    # ga.sort_population_()
+    njit_run(size=pop_size, num_epochs=10_000, num_survivors=25)
 
-    print(ga.genomes.shape, ga.fitness.shape, ga.valids.shape)
+    # print(ga.fitness)
 
 
 def timing():
@@ -126,4 +149,18 @@ if __name__ == "__main__":
     # CONFIG
     POPULATION_SIZE = 100
 
+    profiler = cProfile.Profile()
+    profiler.enable()
+
+    before = time.perf_counter()
+
     main(pop_size=POPULATION_SIZE)
+
+    after = time.perf_counter()
+    print("time:", after - before, "s")
+
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats("cumtime")
+    stats.strip_dirs()
+    # stats.print_stats()
+    stats.dump_stats("profile/export-data.prof")

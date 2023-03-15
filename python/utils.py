@@ -1,4 +1,5 @@
 import numpy as np
+from numba import njit
 
 
 def entropy():
@@ -15,3 +16,11 @@ def entropy():
     # H = -np.sum(np.where(H == 0, 0, H * np.log2(H)))
 
     # return H
+
+
+@njit
+def njit_vstack(arr, condition):
+    if condition:
+        return np.vstack((arr, arr))
+    else:
+        return np.expand_dims(arr, 0)

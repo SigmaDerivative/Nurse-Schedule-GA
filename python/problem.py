@@ -197,7 +197,7 @@ def evaluate(
         penalize_invalid (bool, optional): If fitness is penalized by invalid solution. Defaults to False.
 
     Returns:
-        float: fitness of the solution.
+        tuple[float, bool]: fitness, is_valid
     """
 
     fitness = 0.0
