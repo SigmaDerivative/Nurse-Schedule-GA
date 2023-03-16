@@ -67,7 +67,7 @@ def generate_random_solution(n_nurses: int, n_patients: int) -> NDArray:
         NDArray: Numpy array filled with zeros and random patient ids up to limit.
     """
     patient_ids = np.arange(1, n_patients + 1)
-    solution = np.zeros((n_nurses * n_patients), dtype=np.int32)
+    solution = np.zeros((n_nurses * n_patients), dtype=np.int16)
 
     # Choose random indices to insert values from
     indices = np.random.choice(
@@ -96,7 +96,7 @@ def generate_random_population(size: int, n_nurses: int, n_patients: int) -> NDA
         NDArray: genomes
     """
     patient_ids = np.arange(1, n_patients + 1)
-    genome_ = np.zeros((size * n_nurses * n_patients), dtype=np.int32)
+    genome_ = np.zeros((size * n_nurses * n_patients), dtype=np.int16)
 
     for idx in range(size):
         # Choose random indices to insert values from
