@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 from numba import njit
 
-from initializations import generate_random_population
+from initializations import generate_random_population, generate_cluster_population
 from problem import Problem, evaluate
 from population_manage import elitist, sort_population
 from mutations import mutate_population
@@ -19,6 +19,7 @@ nbr_patients = problem.nbr_patients
 travel_times = problem.travel_times
 capacity_nurse = problem.capacity_nurse
 numpy_patients = problem.numpy_patients
+coordinates = numpy_patients[:, :2]
 
 
 @dataclass
@@ -76,8 +77,11 @@ class GeneticAlgorithm:
 
         # create new individuals
         n = self.size - config.num_survivors
-        new_genomes = generate_random_population(
-            size=n, n_nurses=nbr_nurses, n_patients=nbr_patients
+        new_genomes = generate_cluster_population(
+            size=n,
+            n_nurses=nbr_nurses,
+            n_patients=nbr_patients,
+            coordinates=coordinates,
         )
         new_fitness, new_valids = evaluate_population(new_genomes)
 
@@ -138,14 +142,14 @@ class GeneticAlgorithm:
 def main(pop_size: int):
     ga = GeneticAlgorithm(size=pop_size)
 
-    epoch_config = EpochConfig(num_survivors=95, num_mutators=85)
+    epoch_config = EpochConfig(num_survivors=95, num_mutators=94)
 
-    for _ in tqdm(range(100_000)):
+    for i in range(300):
         ga.epoch(epoch_config)
 
-    ga.sort_population_()
-
-    print(ga.fitness[0])
+        if i % 10 == 0:
+            ga.sort_population_()
+            print(i, ga.fitness[0][0])
 
     problem.visualize_solution(ga.genomes[0])
 

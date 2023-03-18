@@ -141,7 +141,7 @@ def close_single_swap(
     travel_times_ = travel_times[patient, :]
     travel_times_sorted = np.sort(travel_times_)
     # choose one of closest patients
-    idx = np.random.randint(0, m)
+    idx = np.random.randint(1, m)
     dist = travel_times_sorted[idx]
     target_patient = np.where(travel_times_ == dist)[0][0]
 
@@ -165,7 +165,7 @@ def far_single_swap(genome: np.ndarray, travel_times: np.ndarray, m: int) -> np.
     travel_times_ = travel_times[patient, :]
     travel_times_sorted = np.sort(travel_times_)
     # choose one of furthest patients
-    idx = np.random.randint(0, m)
+    idx = np.random.randint(1, m)
     dist = travel_times_sorted[-idx]
     target_patient = np.where(travel_times_ == dist)[0][0]
 

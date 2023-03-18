@@ -90,7 +90,6 @@ def generate_cluster_genome(
     for cluster_idx in range(n_clusters):
         # get patients in cluster
         patients_in_cluster = np.where(cluster_labels == cluster_idx)[0] + 1
-        print(patients_in_cluster)
         # shuffle patients
         np.random.shuffle(patients_in_cluster)
         # get patients to insert
