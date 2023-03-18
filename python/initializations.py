@@ -1,6 +1,7 @@
 import numpy as np
 from numba import njit
 from sklearn.cluster import KMeans
+from tqdm import tqdm
 
 
 @njit
@@ -79,26 +80,28 @@ def generate_cluster_genome(
     """
     genome = np.zeros((n_nurses, n_patients), dtype=np.int16)
     # randomize how many clusters
-    n_clusters = np.random.randint(n_nurses // 1.5, n_nurses + 1)
+    n_clusters = np.random.randint(n_nurses // 1.3, n_nurses + 1)
     # generate clusters with k nearest neighbors
-    neigh = KMeans(n_clusters=n_clusters, random_state=0).fit(coordinates)
+    # settings for faster runtime
+    neigh = KMeans(n_clusters=n_clusters, n_init=2, max_iter=25).fit(coordinates)
     # get cluster labels
     cluster_labels = neigh.labels_
     # insert patients into genome
-    for nurse_idx in range(n_nurses):
+    for cluster_idx in range(n_clusters):
         # get patients in cluster
-        patients_in_cluster = np.where(cluster_labels == nurse_idx)[0]
+        patients_in_cluster = np.where(cluster_labels == cluster_idx)[0] + 1
+        print(patients_in_cluster)
         # shuffle patients
         np.random.shuffle(patients_in_cluster)
         # get patients to insert
         cluster_length = patients_in_cluster.shape[0]
         # insert patients
-        genome[nurse_idx, :cluster_length] = patients_in_cluster
+        genome[cluster_idx, :cluster_length] = patients_in_cluster
     return genome
 
 
 def generate_cluster_population(
-    size: int, n_nurses: int, n_patients: int, travel_times: np.ndarray
+    size: int, n_nurses: int, n_patients: int, coordinates: np.ndarray
 ) -> np.ndarray:
     """Generate a population based on clustering.
 
@@ -106,12 +109,21 @@ def generate_cluster_population(
         size (int): number of individuals in population
         n_nurses (int): determine size of genome
         n_patients (int): determine size of genome
-        travel_times (np.ndarray): travel times between patients
+        coordinates (np.ndarray): coordinates of patients
 
     Returns:
         np.ndarray: genomes
     """
-    pass
+    # initialize population
+    population = np.zeros((size, n_nurses, n_patients), dtype=np.int16)
+    # generate genomes
+    for genome in population:
+        genome_ = generate_cluster_genome(
+            n_nurses=n_nurses, n_patients=n_patients, coordinates=coordinates
+        )
+        genome[:, :] = genome_[:, :]
+
+    return population
 
 
 # TODO fix
@@ -165,27 +177,42 @@ def generate_greedy_population(
 ) -> np.ndarray:
     """Generate a population based on greedy search."""
     population = np.zeros((size, n_nurses, n_patients), dtype=np.int16)
-    # assign one random patient to each nurse
+    # generate each genome
     for genome in population:
         genome_ = generate_greedy_genome(
             n_nurses=n_nurses, n_patients=n_patients, travel_times=travel_times
         )
         genome[:, :] = genome_[:, :]
 
-    # assign remaining patients to nurse with shortest travel time
     return population
 
 
 def timing():
-    from problem import Problem
+    from problem import Problem, evaluate
+    from ga import evaluate_population
 
     problem = Problem("data/train_0.json")
     travel_times = problem.travel_times
+    capacity_nurse = problem.capacity_nurse
+    patients = problem.numpy_patients
+    coordinates = problem.numpy_patients[:, :2]
 
-    pop1 = generate_random_population(size=100, n_nurses=25, n_patients=100)
-    pop2 = generate_cluster_population(
-        size=100, n_nurses=25, n_patients=100, travel_times=travel_times
+    # for _ in tqdm(range(10)):
+    #     pop = generate_cluster_population(
+    #         size=100, n_nurses=25, n_patients=100, coordinates=coordinates
+    #     )
+    genome = generate_cluster_genome(
+        n_nurses=25, n_patients=100, coordinates=coordinates
     )
+    # pop = generate_cluster_population(
+    #     size=3, n_nurses=25, n_patients=100, coordinates=coordinates
+    # )
+    # fitnesses, _ = evaluate_population(pop)
+    # print(fitnesses[0])
+    fit, _ = evaluate(genome, travel_times, capacity_nurse, patients)
+    print(fit)
+    problem.visualize_solution(genome)
+    # problem.visualize_solution(pop[0])
 
 
 if __name__ == "__main__":
