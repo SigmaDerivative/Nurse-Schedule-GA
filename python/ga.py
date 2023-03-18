@@ -14,6 +14,7 @@ from solution_utils import (
 )
 from problem import Problem, evaluate
 from population_manage import elitist, sort_population
+from mutations import mutate_population
 
 problem = Problem("data/train_0.json")
 nbr_nurses = problem.nbr_nurses
@@ -26,6 +27,7 @@ numpy_patients = problem.numpy_patients
 @dataclass
 class EpochConfig:
     num_survivors: int
+    num_mutators: int
 
 
 @njit
@@ -82,10 +84,19 @@ class GeneticAlgorithm:
         )
         new_fitness, new_valids = evaluate_population(new_genomes)
 
+        # mutate part of survived genomes
+        y = config.num_survivors - config.num_mutators
+        mutated_genomes = mutate_population(
+            population=surviver_genomes[y:],
+            travel_times=travel_times,
+            m=8,
+        )
+        mutated_fitness, mutated_valids = evaluate_population(mutated_genomes)
+
         # update population
-        self.genomes = np.vstack((surviver_genomes, new_genomes))
-        self.fitness = np.vstack((surviver_fitness, new_fitness))
-        self.valids = np.vstack((surviver_valids, new_valids))
+        self.genomes = np.vstack((surviver_genomes[:y], mutated_genomes, new_genomes))
+        self.fitness = np.vstack((surviver_fitness[:y], mutated_fitness, new_fitness))
+        self.valids = np.vstack((surviver_valids[:y], mutated_valids, new_valids))
 
         # update epoch number
         self.epoch_number += 1
@@ -130,12 +141,16 @@ class GeneticAlgorithm:
 def main(pop_size: int):
     ga = GeneticAlgorithm(size=pop_size)
 
-    epoch_config = EpochConfig(num_survivors=50)
+    epoch_config = EpochConfig(num_survivors=95, num_mutators=85)
 
-    for _ in tqdm(range(10_000)):
+    for _ in tqdm(range(100_000)):
         ga.epoch(epoch_config)
 
+    ga.sort_population_()
+
     print(ga.fitness[0])
+
+    problem.visualize_solution(ga.genomes[0])
 
 
 if __name__ == "__main__":
