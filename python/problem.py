@@ -182,7 +182,7 @@ def evaluate(
     travel_times: np.ndarray,
     capacity_nurse: int,
     patients: np.ndarray,
-    penalize_invalid: bool = False,
+    penalize_invalid: bool = True,
 ) -> float:
     """Evalauates a solution.
 
@@ -194,11 +194,14 @@ def evaluate(
         travel_times (np.ndarray): Travel time matrix.
         capacity_nurse (int): Max capacity of a nurse.
         patients (np.ndarray): The patients with their information.
-        penalize_invalid (bool, optional): If fitness is penalized by invalid solution. Defaults to False.
+        penalize_invalid (bool, optional): If fitness is penalized by invalid solution. Defaults to True.
 
     Returns:
         tuple[float, bool]: fitness, is_valid
     """
+    start_after_end_penalty = 3
+    end_after_end_penalty = 3
+    capacity_penalty = 3
 
     fitness = 0.0
     is_valid = True
@@ -229,7 +232,9 @@ def evaluate(
             elif tot_time > patients[patient_id - 1, 4]:
                 # penalize if time window is not met
                 if penalize_invalid:
-                    fitness += 1000
+                    fitness += (
+                        tot_time - patients[patient_id - 1, 4]
+                    ) * start_after_end_penalty
                 is_valid = False
 
             # add service time
@@ -240,7 +245,9 @@ def evaluate(
             # penalize if time is after end time
             if tot_time > patients[patient_id - 1, 4]:
                 if penalize_invalid:
-                    fitness += 1000
+                    fitness += (
+                        tot_time - patients[patient_id - 1, 4]
+                    ) * end_after_end_penalty
                 is_valid = False
 
             # update prev spot
@@ -249,7 +256,7 @@ def evaluate(
         # penalize if capacity is exceeded
         if nurse_used_capacity > capacity_nurse:
             if penalize_invalid:
-                fitness += 1000
+                fitness += (nurse_used_capacity - capacity_nurse) * capacity_penalty
             is_valid = False
 
         # add time to fitness
