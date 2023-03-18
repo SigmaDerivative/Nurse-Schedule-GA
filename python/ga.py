@@ -7,14 +7,11 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 from numba import njit
 
-from solution_utils import (
-    generate_random_population,
-    solution_to_list,
-    solution_to_numpy,
-)
+from initializations import generate_random_population
 from problem import Problem, evaluate
 from population_manage import elitist, sort_population
 from mutations import mutate_population
+from utils import solution_to_list, solution_to_numpy
 
 problem = Problem("data/train_0.json")
 nbr_nurses = problem.nbr_nurses
@@ -159,8 +156,6 @@ if __name__ == "__main__":
 
     profiler = cProfile.Profile()
     profiler.enable()
-
-    # main_njit(pop_size=POPULATION_SIZE)
 
     main(pop_size=POPULATION_SIZE)
 

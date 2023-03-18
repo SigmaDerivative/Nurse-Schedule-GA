@@ -238,9 +238,8 @@ def timing2():
 
 
 if __name__ == "__main__":
-    from solution_utils import generate_random_solution
+    from initializations import generate_random_solution, generate_random_population
     import cProfile, pstats
-    from solution_utils import generate_random_population
 
     profiler = cProfile.Profile()
     profiler.enable()

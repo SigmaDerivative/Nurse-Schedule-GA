@@ -2,11 +2,11 @@ import json
 import time
 
 import numpy as np
-from numpy.typing import NDArray
 import matplotlib.pyplot as plt
 from numba import njit
 
-from solution_utils import generate_random_solution, solution_to_numpy, solution_to_list
+from initializations import generate_random_solution
+from utils import solution_to_numpy, solution_to_list
 
 
 class Problem:
@@ -28,7 +28,7 @@ class Problem:
         self.nbr_patients = len(self.patients)
         self.travel_times = np.asarray(self.data["travel_times"])
 
-    def patients_to_numpy(self, patients: dict[str, dict[str, int]]) -> NDArray:
+    def patients_to_numpy(self, patients: dict[str, dict[str, int]]) -> np.ndarray:
         """Converts patients to numpy array."""
         patients = [
             [
@@ -55,11 +55,11 @@ class Problem:
             )
         plt.show()
 
-    def visualize_solution(self, solution: list | NDArray) -> None:
+    def visualize_solution(self, solution: list | np.ndarray) -> None:
         """Visualize a solution.
 
         Args:
-            solution (list | NDArray): Solution on either list on numpy format.
+            solution (list | np.ndarray): Solution on either list on numpy format.
         """
 
         if isinstance(solution, list):
@@ -92,11 +92,11 @@ class Problem:
 
         plt.show()
 
-    def print_solution(self, solution: list | NDArray) -> None:
+    def print_solution(self, solution: list | np.ndarray) -> None:
         """Prints a solution on the desired format.
 
         Args:
-            solution (list | NDArray): Solution on either list on numpy format.
+            solution (list | np.ndarray): Solution on either list on numpy format.
         """
 
         if isinstance(solution, list):
@@ -178,22 +178,22 @@ class Problem:
 
 @njit
 def evaluate(
-    solution: NDArray,
-    travel_times: NDArray,
+    solution: np.ndarray,
+    travel_times: np.ndarray,
     capacity_nurse: int,
-    patients: NDArray,
+    patients: np.ndarray,
     penalize_invalid: bool = False,
 ) -> float:
     """Evalauates a solution.
 
     Args:
-        solution (NDArray): A potential solution.
+        solution (np.ndarray): A potential solution.
         Solution is on format one row per nurse,
         with id for each patient visisted,
         filled with zeros inbetween.
-        travel_times (NDArray): Travel time matrix.
+        travel_times (np.ndarray): Travel time matrix.
         capacity_nurse (int): Max capacity of a nurse.
-        patients (NDArray): The patients with their information.
+        patients (np.ndarray): The patients with their information.
         penalize_invalid (bool, optional): If fitness is penalized by invalid solution. Defaults to False.
 
     Returns:

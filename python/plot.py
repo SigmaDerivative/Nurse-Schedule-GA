@@ -1,67 +1,21 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ga import Individual
 
-
-def plot(
-    maximize: bool, name: str, num_ep: int, avg_fit: list[float], pop: list[Individual]
-):
+def plot_fitness(name: str, num_ep: int, avg_fit: np.ndarray):
     plt.clf()
-    if maximize:
-        plt.plot(np.arange(num_ep), avg_fit, label="RMSE feature selected")
-        plt.plot(
-            np.arange(num_ep),
-            np.ones(num_ep),  # TODO * fitness
-            c="r",
-            label="base RMSE",
-        )
-        # plt.plot(np.arange(num_ep), np.ones(num_ep) * 0.124, c="g", label="0.124")
-        plt.legend()
-    else:
-        plt.plot(np.arange(0, 128, 0.5), np.sin(np.arange(0, 128, 0.5)))
-        for i in pop:
-            plt.scatter(i.get_solution(), np.sin(i.get_solution()), c="r")
-    plt.savefig(name)
-
-
-def plot_entropy(name: str, num_ep: int, entropies: list[float]):
-    plt.clf()
-    plt.plot(
-        np.arange(num_ep),
-        entropies,
-        c="r",
-        label="entropy",
-    )
+    plt.plot(np.arange(num_ep), avg_fit, label="fitness")
     plt.legend()
     plt.savefig(name)
 
 
-#     if (episode + 1) % plot_ep == 0:
-#         plot(
-#             maximize=maximize,
-#             name=f"plots/{maximize}-{crowding}.png"
-#             if maximize == "g"
-#             else f"plots/{episode}-{maximize}-{crowding}.png",
-#             num_ep=episode + 1,
-#             avg_fit=average_fitnesses,
-#             pop=population,
-#         )
-#         plot_entropy(
-#             name=f"plots/entropy-{maximize}-{crowding}.png",
-#             num_ep=episode + 1,
-#             entropies=entropies,
-#         )
-
-# plot(
-#     maximize=maximize,
-#     name=f"plots/{maximize}-{crowding}.png",
-#     num_ep=num_ep,
-#     avg_fit=average_fitnesses,
-#     pop=population,
-# )
-# plot_entropy(
-#     name=f"plots/entropy-{maximize}-{crowding}.png",
-#     num_ep=num_ep,
-#     entropies=entropies,
-# )
+# def plot_entropy(name: str, num_ep: int, entropies: np.ndarray):
+#     plt.clf()
+#     plt.plot(
+#         np.arange(num_ep),
+#         entropies,
+#         c="r",
+#         label="entropy",
+#     )
+#     plt.legend()
+#     plt.savefig(name)

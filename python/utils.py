@@ -1,18 +1,57 @@
+import itertools
+
 import numpy as np
-from numba import njit
 
 
 def entropy():
     pass
-    # bitstr_numbers = np.zeros(bitstr_size)
-    # # adds together all genomes for every candidate
-    # for x in pop:
-    #     bitstr_numbers += x.bitstring
 
-    # # convert to probability for each genome
-    # H = bitstr_numbers / len(pop)
 
-    # # calculate entropy, do not add 0 values
-    # H = -np.sum(np.where(H == 0, 0, H * np.log2(H)))
+def solution_to_numpy(solution: list) -> np.ndarray:
+    """Converts a solution to a numpy array.
 
-    # return H
+    Code from: https://stackoverflow.com/questions/38619143/convert-python-sequence-to-numpy-array-filling-missing-values
+
+    Args:
+        solution (list): A potential solution.
+        Solution is on format one row per nurse,
+        with id for each patient visisted.
+
+    Returns:
+        np.ndarray: A numpy array, where each row is a nurse route.
+    """
+    # convert to numpy array
+    solution_numpy = np.array(list(itertools.zip_longest(*solution, fillvalue=0))).T
+    # pad with zeros
+    num_patients = np.max(solution_numpy)
+    pad_size = num_patients - solution_numpy.shape[1]
+    solution_numpy = np.pad(
+        solution_numpy, [(0, 0), (0, pad_size)], mode="constant", constant_values=0
+    )
+
+    # convert to int
+    solution_numpy = solution_numpy.astype(np.int32)
+
+    return solution_numpy
+
+
+def solution_to_list(solution: np.ndarray) -> list:
+    """Converts a solution to a list of lists.
+
+    Args:
+        solution (np.ndarray): A potential solution.
+        Solution is on format one row per nurse,
+        with id for each patient visisted,
+        filled with zeros inbetween.
+
+    Returns:
+        list: A list of lists, where each list is a nurse route.
+    """
+    solution_list = []
+    for nurse_path in solution:
+        # remove zeros
+        nurse_path = nurse_path[nurse_path != 0]
+        # convert to list
+        nurse_path = nurse_path.tolist()
+        solution_list.append(nurse_path)
+    return solution_list
