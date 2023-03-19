@@ -23,6 +23,16 @@ def elitist(
     return genomes_[:num_elites], fitness_[:num_elites], valids_[:num_elites]
 
 
+# TODO finish
+def parent_selection_feasible_mix(
+    genomes: np.ndarray, fitness: np.ndarray, valids: np.ndarray, num_parents: int
+) -> np.ndarray:
+    # Sort the population by fitness
+    genomes_, _, valids_ = sort_population(genomes, fitness, valids)
+    # Return the parents
+    return genomes_[:num_parents]
+
+
 def tournament():
     pass
 

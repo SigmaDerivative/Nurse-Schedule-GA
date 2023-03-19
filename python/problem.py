@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numba import njit
 
-from initializations import generate_random_solution
+from initializations import generate_random_genome
 from utils import solution_to_numpy, solution_to_list
 
 
@@ -279,7 +279,7 @@ def main():
     # problem.visualize_problem()
 
     # generate random solution
-    sol = generate_random_solution(
+    sol = generate_random_genome(
         n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
     )
     fitness, is_valid = evaluate(
@@ -303,7 +303,7 @@ def eval_timing():
     gen_times = []
     for _ in range(10_000):
         before1 = time.perf_counter_ns()
-        sol = generate_random_solution(
+        sol = generate_random_genome(
             n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
         )
         after1 = time.perf_counter_ns()

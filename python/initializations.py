@@ -5,8 +5,8 @@ from tqdm import tqdm
 
 
 @njit
-def generate_random_solution(n_nurses: int, n_patients: int) -> np.ndarray:
-    """Generate a random solution.
+def generate_random_genome(n_nurses: int, n_patients: int) -> np.ndarray:
+    """Generate a random genome.
 
     Args:
         n_nurses (int): Number of rows
@@ -83,7 +83,7 @@ def generate_cluster_genome(
     n_clusters = np.random.randint(n_nurses // 1.3, n_nurses + 1)
     # generate clusters with k nearest neighbors
     # settings for faster runtime
-    neigh = KMeans(n_clusters=n_clusters, n_init=2, max_iter=25).fit(coordinates)
+    neigh = KMeans(n_clusters=n_clusters, n_init=1, max_iter=25).fit(coordinates)
     # get cluster labels
     cluster_labels = neigh.labels_
     # insert patients into genome
@@ -168,6 +168,12 @@ def generate_greedy_genome(
         used_patients[used_patients_num] = patient
         used_patients_num += 1
     return genome
+
+
+def generate_greedy_feasible_genome(
+    patients: np.ndarray, trael_times: np.ndarray, nurse_capacity: int
+) -> np.ndarray:
+    pass
 
 
 # TODO fix

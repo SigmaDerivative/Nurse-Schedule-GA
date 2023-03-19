@@ -55,3 +55,8 @@ def solution_to_list(solution: np.ndarray) -> list:
         nurse_path = nurse_path.tolist()
         solution_list.append(nurse_path)
     return solution_list
+
+
+def insert_inbetween():
+    """Moes one patient index inbetween two other patient indices."""
+    pass

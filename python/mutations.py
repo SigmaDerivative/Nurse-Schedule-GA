@@ -180,6 +180,81 @@ def far_single_swap(genome: np.ndarray, travel_times: np.ndarray, m: int) -> np.
     return genome
 
 
+def time_close_single_swap(
+    genome: np.ndarray, start_times: np.ndarray, m: int
+) -> np.ndarray:
+    """Swap a patient with another patient with close start time. m is the number of patients to consider."""
+    pass
+
+
+def time_far_single_swap(
+    genome: np.ndarray, start_times: np.ndarray, m: int
+) -> np.ndarray:
+    """Swap a patient with another patient with far off start time. m is the number of patients to consider."""
+    pass
+
+
+def expediate_early_starts(genome: np.ndarray, start_times: np.ndarray) -> np.ndarray:
+    """Move patients with early start times to the front of the schedule."""
+    pass
+
+
+def delay_late_starts(genome: np.ndarray, start_times: np.ndarray) -> np.ndarray:
+    """Move patients with late start times to the back of the schedule."""
+    pass
+
+
+# --- LARGE NEIGHBORHOOD ---
+
+
+def destroy_path():
+    pass
+
+
+def destroy_random():
+    pass
+
+
+def repair_random(genome: np.ndarray) -> np.ndarray:
+    """Fill in missing patients at random spots."""
+    n_patients = genome.shape[1]
+    all_patients = np.arange(1, n_patients + 1)
+
+    # method 1 of finding patients used
+    patient_indices = np.where(genome != 0)
+    used_patients = genome[patient_indices]
+    # method 2 of finding patients used
+    # used_patients = np.unique(genome).nonzero()[0]
+    # find missing patients
+    missing_patients = np.setdiff1d(all_patients, used_patients)
+    # method 2 of finding missing patients
+    # missing_patients = all_patients[~np.isin(all_patients, used_patients)]
+    # fill in missing patients
+    for patient in missing_patients:
+        # select random nurse path
+        nurse_path = np.random.randint(0, genome.shape[0])
+        # try to find a spot in the nurse path to insert to
+        idx = np.random.randint(0, genome.shape[1])
+        while genome[nurse_path, idx] != 0:
+            idx = np.random.randint(0, genome.shape[1])
+        genome[nurse_path, idx] = patient
+
+    return genome
+
+
+def repair_random_uniform(genome: np.ndarray) -> np.ndarray:
+    """Fill in missing patients at random spots with emphasis on nurses with few patients."""
+    pass
+
+
+def repair_greedy(genome: np.ndarray, travel_times: np.ndarray) -> np.ndarray:
+    pass
+
+
+# --- LOCAL SEARCH ---
+# permorm some mutations, evaluate and keep if better
+
+
 # --- COMBINED MUTATIONS ---
 
 
@@ -216,7 +291,7 @@ def timing():
 
     problem = Problem("data/train_0.json")
     travel_times = problem.travel_times
-    genome = generate_random_solution(n_patients=100, n_nurses=25)
+    genome = generate_random_genome(n_patients=100, n_nurses=25)
 
     for _ in tqdm(range(100_000)):
         #     # genome = intra_move_random(genome)
@@ -238,7 +313,7 @@ def timing2():
 
 
 if __name__ == "__main__":
-    from initializations import generate_random_solution, generate_random_population
+    from initializations import generate_random_genome, generate_random_population
     import cProfile, pstats
 
     profiler = cProfile.Profile()
