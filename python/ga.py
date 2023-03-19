@@ -126,21 +126,36 @@ class GeneticAlgorithm:
 #     njit_run(size=pop_size, num_epochs=10_000, num_survivors=25)
 
 
-def main():
-    ga = GeneticAlgorithm(size=100)
+@dataclass
+class TrainConfig:
+    pop_size: int
+    num_epoch: int
+    print_num: int
 
+
+def train_population(
+    train_config: TrainConfig, epoch_config: EpochConfig
+) -> GeneticAlgorithm:
+    ga = GeneticAlgorithm(size=train_config.pop_size)
+
+    for idx in range(train_config.num_epoch):
+        ga.epoch(epoch_config)
+        if idx % train_config.print_num == 0:
+            ga.sort_population_()
+            print(f"epoch {idx} fitness {ga.fitness[0][0]}")
+
+    return ga
+
+
+def main():
     epoch_config = EpochConfig(
         num_parents=20,
         num_new_clustered_individuals=2,
         num_new_random_individuals=4,
     )
+    train_config = TrainConfig(pop_size=100, num_epoch=1000, print_num=10)
 
-    for i in range(300):
-        ga.epoch(epoch_config)
-
-        if i % 10 == 0:
-            ga.sort_population_()
-            print(i, ga.fitness[0][0])
+    ga = train_population(train_config=train_config, epoch_config=epoch_config)
 
     ga.sort_population_()
     print(f"fitness {ga.fitness[0][0]}")
