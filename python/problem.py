@@ -70,7 +70,7 @@ class Problem:
         # plot depot
         plt.scatter(self.depot["x_coord"], self.depot["y_coord"], c="r")
         # plot patients
-        for idx in range(1, self.nbr_patients):
+        for idx in range(1, self.nbr_patients + 1):
             idx = str(idx)
             plt.scatter(
                 self.patients[idx]["x_coord"], self.patients[idx]["y_coord"], c="b"
