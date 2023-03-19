@@ -50,7 +50,11 @@ class Problem:
         # plot patients
         for idx in range(1, self.nbr_patients):
             idx = str(idx)
-            plt.scatter(self.numpy_patients[idx, 0], self.numpy_patients[idx, 1], c="b")
+            plt.scatter(
+                self.list_patients[idx]["x_coord"],
+                self.list_patients[idx]["y_coord"],
+                c="b",
+            )
         plt.show()
 
     def visualize_solution(self, solution: list | np.ndarray) -> None:
@@ -70,7 +74,11 @@ class Problem:
         # plot patients
         for idx in range(1, self.nbr_patients + 1):
             idx = str(idx)
-            plt.scatter(self.numpy_patients[idx, 0], self.numpy_patients[idx, 1], c="b")
+            plt.scatter(
+                self.list_patients[idx]["x_coord"],
+                self.list_patients[idx]["y_coord"],
+                c="b",
+            )
         # plot solution routes
         for nurse in list_solution:
             # add depot to start and end of route
@@ -79,8 +87,8 @@ class Problem:
             # add patients to route
             for patient in nurse:
                 idx = str(patient)
-                xs.append(self.numpy_patients[idx, 0])
-                ys.append(self.numpy_patients[idx, 1])
+                xs.append(self.list_patients[idx]["x_coord"])
+                ys.append(self.list_patients[idx]["y_coord"])
 
             xs.append(self.depot["x_coord"])
             ys.append(self.depot["y_coord"])
