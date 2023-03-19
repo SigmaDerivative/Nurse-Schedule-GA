@@ -13,3 +13,5 @@ epoch:
   num_parents: 20
   new_clustered: 2
   new_random: 4
+  n_destroys: 1
+  repair_function: random

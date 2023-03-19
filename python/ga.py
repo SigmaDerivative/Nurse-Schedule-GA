@@ -1,3 +1,4 @@
+from typing import Callable, Any
 from dataclasses import dataclass
 
 import numpy as np
@@ -6,8 +7,8 @@ import problem
 from initializations import generate_random_population, generate_cluster_population
 from evaluations import evaluate_population
 from population_manage import elitist, sort_population
-from mutations import mutate_population
-from crossover import deterministic_isolated_mating, crossover_random
+from mutations import mutate_population, repair_random
+from crossover import deterministic_isolated_mating
 
 
 @dataclass
@@ -15,6 +16,8 @@ class EpochConfig:
     num_parents: int
     num_new_clustered_individuals: int
     num_new_random_individuals: int
+    n_destroys: int
+    repair_function: Callable[[Any], np.ndarray]
 
 
 class GeneticAlgorithm:
@@ -63,16 +66,19 @@ class GeneticAlgorithm:
             num_elites=config.num_parents,
         )
         # crossover
-        child_genomes = deterministic_isolated_mating(parent_genomes, crossover_random)
+        child_genomes = deterministic_isolated_mating(
+            parent_genomes, config.n_destroys, config.repair_function
+        )
         mutated_genomes = mutate_population(population=child_genomes, m=8)
 
         # create new individuals
-        new_genomes_cluster = generate_cluster_population(
-            size=config.num_new_clustered_individuals,
-            n_nurses=problem.nbr_nurses,
-            n_patients=problem.nbr_patients,
-        )
-        new_genomes_cluster = mutate_population(population=new_genomes_cluster, m=8)
+        if config.num_new_clustered_individuals > 0:
+            new_genomes_cluster = generate_cluster_population(
+                size=config.num_new_clustered_individuals,
+                n_nurses=problem.nbr_nurses,
+                n_patients=problem.nbr_patients,
+            )
+            new_genomes_cluster = mutate_population(population=new_genomes_cluster, m=8)
         new_genomes_random = generate_random_population(
             size=config.num_new_random_individuals,
             n_nurses=problem.nbr_nurses,
@@ -81,9 +87,19 @@ class GeneticAlgorithm:
         new_genomes_random = mutate_population(population=new_genomes_random, m=8)
 
         # combine all genomes
-        total_genomes = np.vstack(
-            (parent_genomes, new_genomes_cluster, new_genomes_random, mutated_genomes)
-        )
+        if config.num_new_clustered_individuals > 0:
+            total_genomes = np.vstack(
+                (
+                    parent_genomes,
+                    new_genomes_cluster,
+                    new_genomes_random,
+                    mutated_genomes,
+                )
+            )
+        else:
+            total_genomes = np.vstack(
+                (parent_genomes, new_genomes_random, mutated_genomes)
+            )
         total_fitness, total_valids = evaluate_population(total_genomes)
         # survival of the fittest
         surviver_genomes, surviver_fitness, surviver_valids = elitist(
@@ -164,6 +180,8 @@ def main():
         num_parents=20,
         num_new_clustered_individuals=2,
         num_new_random_individuals=4,
+        n_destroys=2,
+        repair_function=repair_random,
     )
     train_config = TrainConfig(pop_size=100, num_epoch=1000, print_num=10)
 

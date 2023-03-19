@@ -3,56 +3,45 @@ from typing import Callable, Any
 import numpy as np
 
 import problem
-from mutations import repair_greedy, repair_random
 
 
-def crossover_greedy(
-    genome1: np.ndarray, genome2: np.ndarray
+def crossover_destroy_repair(
+    genome1: np.ndarray,
+    genome2: np.ndarray,
+    n_destroys: int,
+    repair_function: Callable[[Any], np.ndarray],
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Destroy opposite paths and greedy insert lost patients."""
+    """Destroy opposite paths and repair lost patients."""
     # initiate children
     child1_ = np.copy(genome1)
     child2_ = np.copy(genome2)
-    # choose nurse paths
-    nurses = np.random.choice(genome1.shape[0], 2, replace=False)
-    # destroy opposite paths
-    child1_[nurses[0], :] = 0
-    child2_[nurses[1], :] = 0
-    # greedy insert lost patients
-    child1 = repair_greedy(child1_, problem.travel_times)
-    child2 = repair_greedy(child2_, problem.travel_times)
 
-    return child1, child2
-
-
-def crossover_random(
-    genome1: np.ndarray, genome2: np.ndarray
-) -> tuple[np.ndarray, np.ndarray]:
-    """Destroy opposite paths and greedy insert lost patients."""
-    # initiate children
-    child1_ = np.copy(genome1)
-    child2_ = np.copy(genome2)
-    # choose nurse paths
-    nurses = np.random.choice(genome1.shape[0], 2, replace=False)
-    # destroy opposite paths
-    child1_[nurses[0], :] = 0
-    child2_[nurses[1], :] = 0
-    # greedy insert lost patients
-    child1 = repair_random(child1_)
-    child2 = repair_random(child2_)
+    for _ in range(n_destroys):
+        # choose nurse paths
+        nurses = np.random.choice(genome1.shape[0], 2, replace=False)
+        # destroy opposite paths
+        child1_[nurses[0], :] = 0
+        child2_[nurses[1], :] = 0
+    # insert lost patients according to repair function
+    child1 = repair_function(child1_)
+    child2 = repair_function(child2_)
 
     return child1, child2
 
 
 def deterministic_isolated_mating(
-    population: np.ndarray, crossover_function: Callable[[Any], np.ndarray]
+    population: np.ndarray,
+    n_destroys: int,
+    repair_function: Callable[[Any], np.ndarray],
 ) -> np.ndarray:
     """Recieves a population and mate every other genome"""
     if population.shape[0] % 2 != 0:
         raise ValueError("Population size must be even")
     new_population = np.zeros_like(population)
     for i in range(0, population.shape[0], 2):
-        child1, child2 = crossover_function(population[i], population[i + 1])
+        child1, child2 = crossover_destroy_repair(
+            population[i], population[i + 1], n_destroys, repair_function
+        )
         new_population[i] = child1
         new_population[i + 1] = child2
 
@@ -60,7 +49,9 @@ def deterministic_isolated_mating(
 
 
 def stochastic_isolated_mating(
-    population: np.ndarray, crossover_function: Callable[[Any], np.ndarray]
+    population: np.ndarray,
+    n_destroys: int,
+    repair_function: Callable[[Any], np.ndarray],
 ) -> np.ndarray:
     """Recieves a part of the population and mate everyone once randomly"""
     pass
@@ -69,7 +60,17 @@ def stochastic_isolated_mating(
 def stochastic_elitist_mating(
     population: np.ndarray,
     fitness: np.ndarray,
-    crossover_function: Callable[[Any], np.ndarray],
+    n_destroys: int,
+    repair_function: Callable[[Any], np.ndarray],
+) -> np.ndarray:
+    """Recieves a part of the population and mate randomly with emphasis on the best genomes. One genome can mate more than once."""
+    pass
+
+
+def stochastic_elitist_mating(
+    population: np.ndarray,
+    n_destroys: int,
+    repair_function: Callable[[Any], np.ndarray],
 ) -> np.ndarray:
     """Recieves a part of the population and mate randomly with emphasis on the best genomes. One genome can mate more than once."""
     pass
