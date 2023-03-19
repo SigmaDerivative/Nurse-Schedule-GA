@@ -1,7 +1,8 @@
 import numpy as np
 from numba import njit
 from sklearn.cluster import KMeans
-from tqdm import tqdm
+
+import problem
 
 
 @njit
@@ -16,7 +17,7 @@ def generate_random_genome(n_nurses: int, n_patients: int) -> np.ndarray:
         np.ndarray: Numpy array filled with zeros and random patient ids up to limit.
     """
     patient_ids = np.arange(1, n_patients + 1)
-    solution = np.zeros((n_nurses * n_patients), dtype=np.int16)
+    genome = np.zeros((n_nurses * n_patients), dtype=np.int16)
 
     # Choose random indices to insert values from
     indices = np.random.choice(
@@ -24,12 +25,12 @@ def generate_random_genome(n_nurses: int, n_patients: int) -> np.ndarray:
     )
 
     # Insert values from patient_ids into zeros
-    solution[indices] = patient_ids
+    genome[indices] = patient_ids
 
     # Reshape to (n_nurses, n_patients)
-    solution = solution.reshape((n_nurses, n_patients))
+    genome = genome.reshape((n_nurses, n_patients))
 
-    return solution
+    return genome
 
 
 @njit
@@ -65,15 +66,12 @@ def generate_random_population(size: int, n_nurses: int, n_patients: int) -> np.
     return genomes
 
 
-def generate_cluster_genome(
-    n_nurses: int, n_patients: int, coordinates: np.ndarray
-) -> np.ndarray:
+def generate_cluster_genome(n_nurses: int, n_patients: int) -> np.ndarray:
     """Generate a genome based on clustering.
 
     Args:
         n_nurses (int): determine size of genome
         n_patients (int): determine size of genome
-        coordinates (np.ndarray): coordinates of patients
 
     Returns:
         np.ndarray: genome
@@ -83,7 +81,9 @@ def generate_cluster_genome(
     n_clusters = np.random.randint(n_nurses // 1.3, n_nurses + 1)
     # generate clusters with k nearest neighbors
     # settings for faster runtime
-    neigh = KMeans(n_clusters=n_clusters, n_init=1, max_iter=25).fit(coordinates)
+    neigh = KMeans(n_clusters=n_clusters, n_init=1, max_iter=25).fit(
+        problem.coordinates
+    )
     # get cluster labels
     cluster_labels = neigh.labels_
     # insert patients into genome
@@ -100,7 +100,7 @@ def generate_cluster_genome(
 
 
 def generate_cluster_population(
-    size: int, n_nurses: int, n_patients: int, coordinates: np.ndarray
+    size: int, n_nurses: int, n_patients: int
 ) -> np.ndarray:
     """Generate a population based on clustering.
 
@@ -108,7 +108,6 @@ def generate_cluster_population(
         size (int): number of individuals in population
         n_nurses (int): determine size of genome
         n_patients (int): determine size of genome
-        coordinates (np.ndarray): coordinates of patients
 
     Returns:
         np.ndarray: genomes
@@ -117,18 +116,14 @@ def generate_cluster_population(
     population = np.zeros((size, n_nurses, n_patients), dtype=np.int16)
     # generate genomes
     for genome in population:
-        genome_ = generate_cluster_genome(
-            n_nurses=n_nurses, n_patients=n_patients, coordinates=coordinates
-        )
+        genome_ = generate_cluster_genome(n_nurses=n_nurses, n_patients=n_patients)
         genome[:, :] = genome_[:, :]
 
     return population
 
 
 # TODO fix
-def generate_greedy_genome(
-    n_nurses: int, n_patients: int, travel_times: np.ndarray
-) -> np.ndarray:
+def generate_greedy_genome(n_nurses: int, n_patients: int) -> np.ndarray:
     genome = np.zeros((n_nurses, n_patients), dtype=np.int16)
     first_patients = np.random.choice(
         np.arange(1, n_patients + 1), size=n_nurses, replace=False
@@ -147,7 +142,7 @@ def generate_greedy_genome(
     np.random.shuffle(remaining_patients)
     for patient in remaining_patients:
         # find shortest travel times
-        shortest_travel_time_idx = np.argsort(travel_times)
+        shortest_travel_time_idx = np.argsort(problem.travel_times)
         # pick one of the shortest travel times
         idx_pick = np.random.randint(0, 5)
         shortest_travel_time_idx = shortest_travel_time_idx[idx_pick]
@@ -170,37 +165,25 @@ def generate_greedy_genome(
     return genome
 
 
-def generate_greedy_feasible_genome(
-    patients: np.ndarray, trael_times: np.ndarray, nurse_capacity: int
-) -> np.ndarray:
-    pass
-
-
 # TODO fix
-def generate_greedy_population(
-    size: int, n_nurses: int, n_patients: int, travel_times: np.ndarray
-) -> np.ndarray:
+def generate_greedy_population(size: int, n_nurses: int, n_patients: int) -> np.ndarray:
     """Generate a population based on greedy search."""
     population = np.zeros((size, n_nurses, n_patients), dtype=np.int16)
     # generate each genome
     for genome in population:
-        genome_ = generate_greedy_genome(
-            n_nurses=n_nurses, n_patients=n_patients, travel_times=travel_times
-        )
+        genome_ = generate_greedy_genome(n_nurses=n_nurses, n_patients=n_patients)
         genome[:, :] = genome_[:, :]
 
     return population
 
 
-def timing():
-    from problem import Problem, evaluate
-    from ga import evaluate_population
+def generate_greedy_feasible_genome() -> np.ndarray:
+    pass
 
-    problem = Problem("data/train_0.json")
-    travel_times = problem.travel_times
-    capacity_nurse = problem.capacity_nurse
-    patients = problem.numpy_patients
-    coordinates = problem.numpy_patients[:, :2]
+
+def timing():
+    from evaluations import evaluate, evaluate_population
+    from tqdm import tqdm
 
     # for _ in tqdm(range(10)):
     #     pop = generate_cluster_population(
@@ -214,9 +197,9 @@ def timing():
     # )
     # fitnesses, _ = evaluate_population(pop)
     # print(fitnesses[0])
-    fit, _ = evaluate(genome, travel_times, capacity_nurse, patients)
+    fit, _ = evaluate(genome)
     print(fit)
-    problem.visualize_solution(genome)
+    # problem.visualize_solution(genome)
     # problem.visualize_solution(pop[0])
 
 

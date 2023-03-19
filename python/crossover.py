@@ -2,11 +2,12 @@ from typing import Callable, Any
 
 import numpy as np
 
+import problem
 from mutations import repair_greedy, repair_random
 
 
 def crossover_greedy(
-    genome1: np.ndarray, genome2: np.ndarray, travel_times: np.ndarray
+    genome1: np.ndarray, genome2: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
     """Destroy opposite paths and greedy insert lost patients."""
     # initiate children
@@ -18,8 +19,8 @@ def crossover_greedy(
     child1_[nurses[0], :] = 0
     child2_[nurses[1], :] = 0
     # greedy insert lost patients
-    child1 = repair_greedy(child1_, travel_times)
-    child2 = repair_greedy(child2_, travel_times)
+    child1 = repair_greedy(child1_, problem.travel_times)
+    child2 = repair_greedy(child2_, problem.travel_times)
 
     return child1, child2
 
@@ -76,25 +77,15 @@ def duel():
 
 if __name__ == "__main__":
     from initializations import generate_random_genome
-    from problem import Problem, evaluate
+    from evaluations import evaluate
 
     genome1 = generate_random_genome(25, 100)
     genome2 = generate_random_genome(25, 100)
-    problem = Problem("data/train_0.json")
-    travel_times = problem.travel_times
     child1, child2 = crossover_random(genome1, genome2)
-    fitness1, _ = evaluate(
-        child1, travel_times, problem.capacity_nurse, problem.numpy_patients
-    )
-    fitness2, _ = evaluate(
-        child2, travel_times, problem.capacity_nurse, problem.numpy_patients
-    )
-    fit_parent1, _ = evaluate(
-        genome1, travel_times, problem.capacity_nurse, problem.numpy_patients
-    )
-    fit_parent2, _ = evaluate(
-        genome2, travel_times, problem.capacity_nurse, problem.numpy_patients
-    )
+    fitness1, _ = evaluate(child1)
+    fitness2, _ = evaluate(child2)
+    fit_parent1, _ = evaluate(genome1)
+    fit_parent2, _ = evaluate(genome2)
     print(f"fitness child1: {fitness1}")
     print(f"fitness child2: {fitness2}")
     print(f"fitness parent1: {fit_parent1}")

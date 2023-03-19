@@ -58,5 +58,5 @@ def solution_to_list(solution: np.ndarray) -> list:
 
 
 def insert_inbetween():
-    """Moes one patient index inbetween two other patient indices."""
+    """Moves one patient index inbetween two other patient indices."""
     pass

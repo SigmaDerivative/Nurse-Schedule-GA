@@ -1,7 +1,8 @@
 import numpy as np
 
 from numba import njit
-from tqdm import tqdm
+
+import problem
 
 
 # --- RANDOM INTRA MUTATIONS ---
@@ -131,14 +132,12 @@ def random_multi_swap(genome: np.ndarray) -> np.ndarray:
 
 
 @njit
-def close_single_swap(
-    genome: np.ndarray, travel_times: np.ndarray, m: int
-) -> np.ndarray:
+def close_single_swap(genome: np.ndarray, m: int) -> np.ndarray:
     """Swap a patient with a close patient. m is the number of closest patients to consider."""
     # choose patient to swap
     patient = np.random.randint(1, genome.shape[1] + 1)
     # find another close patient
-    travel_times_ = travel_times[patient, :]
+    travel_times_ = problem.travel_times[patient, :]
     travel_times_sorted = np.sort(travel_times_)
     # choose one of closest patients
     idx = np.random.randint(1, m)
@@ -157,12 +156,12 @@ def close_single_swap(
 
 
 @njit
-def far_single_swap(genome: np.ndarray, travel_times: np.ndarray, m: int) -> np.ndarray:
+def far_single_swap(genome: np.ndarray, m: int) -> np.ndarray:
     """Swap a patient with a close patient. m is the number of furthest patients to consider."""
     # choose patient to swap
     patient = np.random.randint(1, genome.shape[1] + 1)
     # find another far patient
-    travel_times_ = travel_times[patient, :]
+    travel_times_ = problem.travel_times[patient, :]
     travel_times_sorted = np.sort(travel_times_)
     # choose one of furthest patients
     idx = np.random.randint(1, m)
@@ -180,26 +179,22 @@ def far_single_swap(genome: np.ndarray, travel_times: np.ndarray, m: int) -> np.
     return genome
 
 
-def time_close_single_swap(
-    genome: np.ndarray, start_times: np.ndarray, m: int
-) -> np.ndarray:
+def time_close_single_swap(genome: np.ndarray, m: int) -> np.ndarray:
     """Swap a patient with another patient with close start time. m is the number of patients to consider."""
     pass
 
 
-def time_far_single_swap(
-    genome: np.ndarray, start_times: np.ndarray, m: int
-) -> np.ndarray:
+def time_far_single_swap(genome: np.ndarray, m: int) -> np.ndarray:
     """Swap a patient with another patient with far off start time. m is the number of patients to consider."""
     pass
 
 
-def expediate_early_starts(genome: np.ndarray, start_times: np.ndarray) -> np.ndarray:
-    """Move patients with early start times to the front of the schedule."""
+def expediate_early_ends(genome: np.ndarray) -> np.ndarray:
+    """Move patients with early end times to the front of the schedule."""
     pass
 
 
-def delay_late_starts(genome: np.ndarray, start_times: np.ndarray) -> np.ndarray:
+def delay_late_starts(genome: np.ndarray) -> np.ndarray:
     """Move patients with late start times to the back of the schedule."""
     pass
 
@@ -247,7 +242,7 @@ def repair_random_uniform(genome: np.ndarray) -> np.ndarray:
     pass
 
 
-def repair_greedy(genome: np.ndarray, travel_times: np.ndarray) -> np.ndarray:
+def repair_greedy(genome: np.ndarray) -> np.ndarray:
     pass
 
 
@@ -259,9 +254,7 @@ def repair_greedy(genome: np.ndarray, travel_times: np.ndarray) -> np.ndarray:
 
 
 @njit
-def mutate_population(
-    population: np.ndarray, travel_times: np.ndarray, m: int
-) -> np.ndarray:
+def mutate_population(population: np.ndarray, m: int) -> np.ndarray:
     """Mutate a population of genomes."""
     # genome_size = population.shape[1]
     for idx, genome in enumerate(population):
@@ -278,19 +271,15 @@ def mutate_population(
         elif mut_type == 4:
             genome_ = random_multi_swap(genome)
         elif mut_type == 5:
-            genome_ = close_single_swap(genome, travel_times=travel_times, m=m)
+            genome_ = close_single_swap(genome, m=m)
         elif mut_type == 6:
-            genome_ = far_single_swap(genome, travel_times=travel_times, m=m)
+            genome_ = far_single_swap(genome, m=m)
         population[idx, :] = genome_
     return population
 
 
 # --- TIMING ---
 def timing():
-    from problem import Problem
-
-    problem = Problem("data/train_0.json")
-    travel_times = problem.travel_times
     genome = generate_random_genome(n_patients=100, n_nurses=25)
 
     for _ in tqdm(range(100_000)):
@@ -300,8 +289,8 @@ def timing():
         #     shuffle_path(genome)
         #     flip_path(genome)
         #     index_interval_inter_swap(genome)
-        genome = close_single_swap(genome, travel_times=travel_times, m=8)
-        genome = far_single_swap(genome, travel_times=travel_times, m=8)
+        genome = close_single_swap(genome, m=8)
+        genome = far_single_swap(genome, m=8)
 
 
 def timing2():
@@ -315,6 +304,7 @@ def timing2():
 if __name__ == "__main__":
     from initializations import generate_random_genome, generate_random_population
     import cProfile, pstats
+    from tqdm import tqdm
 
     profiler = cProfile.Profile()
     profiler.enable()

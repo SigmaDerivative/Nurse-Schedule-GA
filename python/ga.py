@@ -1,25 +1,12 @@
-import time
-import cProfile, pstats
 from dataclasses import dataclass
 
 import numpy as np
-from numpy.typing import NDArray
-from tqdm import tqdm
-from numba import njit
 
+import problem
 from initializations import generate_random_population, generate_cluster_population
-from problem import Problem, evaluate
+from evaluations import evaluate_population
 from population_manage import elitist, sort_population
 from mutations import mutate_population
-from utils import solution_to_list, solution_to_numpy
-
-problem = Problem("data/train_0.json")
-nbr_nurses = problem.nbr_nurses
-nbr_patients = problem.nbr_patients
-travel_times = problem.travel_times
-capacity_nurse = problem.capacity_nurse
-numpy_patients = problem.numpy_patients
-coordinates = numpy_patients[:, :2]
 
 
 @dataclass
@@ -28,23 +15,10 @@ class EpochConfig:
     num_mutators: int
 
 
-@njit
-def evaluate_population(genomes: NDArray) -> NDArray:
-    fitness = np.empty((genomes.shape[0], 1), dtype=np.float64)
-    valid = np.empty((genomes.shape[0], 1), dtype=np.bool_)
-    for idx, genome in enumerate(genomes):
-        fitness_, valid_ = evaluate(
-            genome, travel_times, capacity_nurse, numpy_patients, penalize_invalid=True
-        )
-        fitness[idx, 0] = fitness_
-        valid[idx, 0] = valid_
-    return fitness, valid
-
-
 class GeneticAlgorithm:
     def __init__(self, size: int) -> None:
         genomes = generate_random_population(
-            size=size, n_nurses=nbr_nurses, n_patients=nbr_patients
+            size=size, n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
         )
         fitness, valids = evaluate_population(genomes)
         self.genomes = genomes
@@ -78,20 +52,13 @@ class GeneticAlgorithm:
         # create new individuals
         n = self.size - config.num_survivors
         new_genomes = generate_cluster_population(
-            size=n,
-            n_nurses=nbr_nurses,
-            n_patients=nbr_patients,
-            coordinates=coordinates,
+            size=n, n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
         )
         new_fitness, new_valids = evaluate_population(new_genomes)
 
         # mutate part of survived genomes
         y = config.num_survivors - config.num_mutators
-        mutated_genomes = mutate_population(
-            population=surviver_genomes[y:],
-            travel_times=travel_times,
-            m=8,
-        )
+        mutated_genomes = mutate_population(population=surviver_genomes[y:], m=8)
         mutated_fitness, mutated_valids = evaluate_population(mutated_genomes)
 
         # update population
@@ -139,8 +106,8 @@ class GeneticAlgorithm:
 #     njit_run(size=pop_size, num_epochs=10_000, num_survivors=25)
 
 
-def main(pop_size: int):
-    ga = GeneticAlgorithm(size=pop_size)
+def main():
+    ga = GeneticAlgorithm(size=100)
 
     epoch_config = EpochConfig(num_survivors=95, num_mutators=94)
 
@@ -151,17 +118,16 @@ def main(pop_size: int):
             ga.sort_population_()
             print(i, ga.fitness[0][0])
 
-    problem.visualize_solution(ga.genomes[0])
+    problem.problem.visualize_solution(ga.genomes[0])
 
 
 if __name__ == "__main__":
-    # CONFIG
-    POPULATION_SIZE = 100
+    import cProfile, pstats
 
     profiler = cProfile.Profile()
     profiler.enable()
 
-    main(pop_size=POPULATION_SIZE)
+    main()
 
     profiler.disable()
     stats = pstats.Stats(profiler)
