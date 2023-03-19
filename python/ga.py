@@ -7,8 +7,8 @@ import problem
 from initializations import generate_random_population, generate_cluster_population
 from evaluations import evaluate_population
 from population_manage import elitist, sort_population
-from mutations import mutate_population, repair_random
-from crossover import deterministic_isolated_mating
+from mutations import mutate_population, repair_random, repair_greedy
+from crossover import deterministic_isolated_mating, stochastic_elitist_mating
 
 
 @dataclass
@@ -18,13 +18,13 @@ class EpochConfig:
     num_new_random_individuals: int
     n_destroys: int
     repair_function: Callable[[Any], np.ndarray]
+    n_children: int
+    mate_elite_prob_factor: float = 2.0
 
 
 class GeneticAlgorithm:
     def __init__(self, size: int) -> None:
-        genomes = generate_random_population(
-            size=size, n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
-        )
+        genomes = generate_random_population(size=size)
         fitness, valids = evaluate_population(genomes)
         self.genomes = genomes
         self.fitness = fitness
@@ -65,24 +65,36 @@ class GeneticAlgorithm:
             valids=self.valids,
             num_elites=config.num_parents,
         )
+
+        # random repair function
+        if np.random.uniform() < 0.5:
+            repair_func = repair_random
+        else:
+            repair_func = repair_greedy
+
         # crossover
-        child_genomes = deterministic_isolated_mating(
-            parent_genomes, config.n_destroys, config.repair_function
-        )
+        if np.random.uniform() < 0.5:
+            child_genomes = deterministic_isolated_mating(
+                parent_genomes, config.n_destroys, repair_func
+            )
+        else:
+            child_genomes = stochastic_elitist_mating(
+                parent_genomes,
+                config.n_destroys,
+                repair_func,
+                config.n_children,
+                config.mate_elite_prob_factor,
+            )
         mutated_genomes = mutate_population(population=child_genomes, m=8)
 
         # create new individuals
         if config.num_new_clustered_individuals > 0:
             new_genomes_cluster = generate_cluster_population(
-                size=config.num_new_clustered_individuals,
-                n_nurses=problem.nbr_nurses,
-                n_patients=problem.nbr_patients,
+                size=config.num_new_clustered_individuals
             )
             new_genomes_cluster = mutate_population(population=new_genomes_cluster, m=8)
         new_genomes_random = generate_random_population(
-            size=config.num_new_random_individuals,
-            n_nurses=problem.nbr_nurses,
-            n_patients=problem.nbr_patients,
+            size=config.num_new_random_individuals
         )
         new_genomes_random = mutate_population(population=new_genomes_random, m=8)
 
@@ -182,6 +194,7 @@ def main():
         num_new_random_individuals=4,
         n_destroys=2,
         repair_function=repair_random,
+        n_children=20,
     )
     train_config = TrainConfig(pop_size=100, num_epoch=1000, print_num=10)
 

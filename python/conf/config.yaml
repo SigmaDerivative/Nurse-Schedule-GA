@@ -14,4 +14,6 @@ epoch:
   new_clustered: 2
   new_random: 4
   n_destroys: 1
-  repair_function: random
+  repair_function: greedy # unused
+  n_children: 40
+  mate_elite_prob_factor: 4.0

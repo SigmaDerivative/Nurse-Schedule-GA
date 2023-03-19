@@ -243,7 +243,64 @@ def repair_random_uniform(genome: np.ndarray) -> np.ndarray:
 
 
 def repair_greedy(genome: np.ndarray) -> np.ndarray:
-    pass
+    """Fill in missing patients by greedily inserting them where there is least travel time."""
+    n_patients = genome.shape[1]
+    all_patients = np.arange(1, n_patients + 1)
+
+    # finding patients used
+    patient_indices = np.where(genome != 0)
+    used_patients = genome[patient_indices]
+    # find missing patients
+    missing_patients = np.setdiff1d(all_patients, used_patients)
+    # fill in missing patients
+    for patient in missing_patients:
+        # find nurse path with least travel time
+        patients_by_distance = np.argsort(problem.travel_times[patient])
+        # start with closest patient
+        inserted = False
+        # try to find a spot in the nurse path to insert to
+        for patient_try in range(1, len(patients_by_distance)):
+            # if nearest neighbor is also missing
+            if not patients_by_distance[patient_try] in genome:
+                continue
+            spot_of_interest = np.where(genome == patients_by_distance[patient_try])
+            # is free spot before
+            if genome[spot_of_interest[0][0], spot_of_interest[1][0] - 1] == 0:
+                genome[spot_of_interest[0][0], spot_of_interest[1][0] - 1] = patient
+                inserted = True
+                # roll nurse_path if inserted in [-1]
+                if spot_of_interest[1][0] == 0:
+                    genome[spot_of_interest[0][0]] = np.roll(
+                        genome[spot_of_interest[0][0]], 1
+                    )
+                break
+            # is free spot after and in last position
+            if spot_of_interest[1][0] == genome.shape[1] - 1:
+                if genome[spot_of_interest[0][0], 0] == 0:
+                    genome[spot_of_interest[0][0], 0] = patient
+                    inserted = True
+                    # roll nurse_path
+                    genome[spot_of_interest[0][0]] = np.roll(
+                        genome[spot_of_interest[0][0]], -1
+                    )
+                    break
+            else:
+                # is free spot after
+                if genome[spot_of_interest[0][0], spot_of_interest[1][0] + 1] == 0:
+                    genome[spot_of_interest[0][0], spot_of_interest[1][0] + 1] = patient
+                    inserted = True
+                    break
+        # if no spot found, insert at random
+        if not inserted:
+            # select random nurse path
+            nurse_path = np.random.randint(0, genome.shape[0])
+            # try to find a spot in the nurse path to insert to
+            idx = np.random.randint(0, genome.shape[1])
+            while genome[nurse_path, idx] != 0:
+                idx = np.random.randint(0, genome.shape[1])
+            genome[nurse_path, idx] = patient
+
+    return genome
 
 
 # --- LOCAL SEARCH ---

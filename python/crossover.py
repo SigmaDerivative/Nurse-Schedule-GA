@@ -2,8 +2,6 @@ from typing import Callable, Any
 
 import numpy as np
 
-import problem
-
 
 def crossover_destroy_repair(
     genome1: np.ndarray,
@@ -37,15 +35,15 @@ def deterministic_isolated_mating(
     """Recieves a population and mate every other genome"""
     if population.shape[0] % 2 != 0:
         raise ValueError("Population size must be even")
-    new_population = np.zeros_like(population)
+    children = np.zeros_like(population)
     for i in range(0, population.shape[0], 2):
         child1, child2 = crossover_destroy_repair(
             population[i], population[i + 1], n_destroys, repair_function
         )
-        new_population[i] = child1
-        new_population[i + 1] = child2
+        children[i] = child1
+        children[i + 1] = child2
 
-    return new_population
+    return children
 
 
 def stochastic_isolated_mating(
@@ -59,25 +57,66 @@ def stochastic_isolated_mating(
 
 def stochastic_elitist_mating(
     population: np.ndarray,
-    fitness: np.ndarray,
     n_destroys: int,
     repair_function: Callable[[Any], np.ndarray],
+    n_children: int,
+    prob_factor: float = 3.0,
 ) -> np.ndarray:
     """Recieves a part of the population and mate randomly with emphasis on the best genomes. One genome can mate more than once."""
-    pass
+    if n_children % 2 != 0:
+        raise ValueError("n_children must be even")
+    children = np.zeros(
+        (n_children, population.shape[1], population.shape[2]), dtype=np.int16
+    )
+    # calculate probabilities
+    probabilities = (
+        np.arange(population.shape[0], 0, -1) + population.shape[0] / prob_factor
+    )
+    probabilities = probabilities / np.sum(probabilities)
+
+    for i in range(0, n_children, 2):
+        # choose parents
+        parents_idx = np.random.choice(
+            population.shape[0], 2, replace=False, p=probabilities
+        )
+        child1, child2 = crossover_destroy_repair(
+            population[parents_idx[0]],
+            population[parents_idx[1]],
+            n_destroys,
+            repair_function,
+        )
+        children[i] = child1
+        children[i + 1] = child2
+
+    return children
 
 
-def stochastic_elitist_mating(
+def stochastic_mating(
     population: np.ndarray,
     n_destroys: int,
     repair_function: Callable[[Any], np.ndarray],
+    n_children: int,
 ) -> np.ndarray:
-    """Recieves a part of the population and mate randomly with emphasis on the best genomes. One genome can mate more than once."""
-    pass
+    """Recieves a part of the population and mate randomly until n_children are created.
+    One genome can mate more than once and same pair can also mate more than once."""
+    if n_children % 2 != 0:
+        raise ValueError("n_children must be even")
+    children = np.zeros(
+        (n_children, population.shape[1], population.shape[2]), dtype=np.int16
+    )
+    for i in range(0, n_children, 2):
+        # choose parents
+        parents_idx = np.random.choice(population.shape[0], 2, replace=False)
+        child1, child2 = crossover_destroy_repair(
+            population[parents_idx[0]],
+            population[parents_idx[1]],
+            n_destroys,
+            repair_function,
+        )
+        children[i] = child1
+        children[i + 1] = child2
 
-
-def mate():
-    pass
+    return children
 
 
 def duel():
