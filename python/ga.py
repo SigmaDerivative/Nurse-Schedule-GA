@@ -29,6 +29,18 @@ class GeneticAlgorithm:
         self.size = size
         self.epoch_number = 0
 
+    def __add__(self, other: "GeneticAlgorithm") -> "GeneticAlgorithm":
+        genomes = np.concatenate((self.genomes, other.genomes))
+        fitness = np.concatenate((self.fitness, other.fitness))
+        valids = np.concatenate((self.valids, other.valids))
+        ga = GeneticAlgorithm(size=0)
+        ga.genomes = genomes
+        ga.fitness = fitness
+        ga.valids = valids
+        ga.size = self.size + other.size
+        ga.epoch_number = self.epoch_number + other.epoch_number
+        return ga
+
     def sort_population_(self) -> None:
         genomes, fitness, valids = sort_population(
             genomes=self.genomes,

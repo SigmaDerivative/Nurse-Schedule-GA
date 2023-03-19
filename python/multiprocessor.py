@@ -35,7 +35,7 @@ def mp_train_population(
 
 if __name__ == "__main__":
     mp_ = MultiProcessor(num_workers=4)
-    train_config = TrainConfig(pop_size=100, num_epoch=1000, print_num=100)
+    train_config = TrainConfig(pop_size=100, num_epoch=10, print_num=100)
     epoch_config = EpochConfig(
         num_parents=20,
         num_new_clustered_individuals=2,
@@ -43,4 +43,4 @@ if __name__ == "__main__":
     )
     mp_.start_processes(train_config, epoch_config)
     ga = mp_.combine_results()
-    print(ga)
+    print(ga.size)
