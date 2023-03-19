@@ -11,12 +11,11 @@ from ga import GeneticAlgorithm, EpochConfig
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> float:
-    print(cfg.size)
     ga = GeneticAlgorithm(size=cfg.size)
 
     epoch_config = EpochConfig(num_survivors=95, num_mutators=94)
 
-    for i in tqdm(range(20)):
+    for i in range(20):
         ga.epoch(epoch_config)
 
         if i % 10 == 0:
