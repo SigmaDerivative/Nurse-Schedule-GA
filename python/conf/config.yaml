@@ -1,1 +1,15 @@
-size: 100
+hydra:
+  run:
+    dir: ./outputs/${now:%Y-%m-%d-%H-%M-%S}
+  job:
+    chdir: True
+
+size: 40
+num_epochs: 1_500
+num_parallell: 2
+print_num: 25
+
+epoch:
+  num_parents: 20
+  new_clustered: 2
+  new_random: 4

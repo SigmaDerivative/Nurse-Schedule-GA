@@ -7,12 +7,14 @@ from initializations import generate_random_population, generate_cluster_populat
 from evaluations import evaluate_population
 from population_manage import elitist, sort_population
 from mutations import mutate_population
+from crossover import deterministic_isolated_mating, crossover_random
 
 
 @dataclass
 class EpochConfig:
-    num_survivors: int
-    num_mutators: int
+    num_parents: int
+    num_new_clustered_individuals: int
+    num_new_random_individuals: int
 
 
 class GeneticAlgorithm:
@@ -41,30 +43,48 @@ class GeneticAlgorithm:
         self,
         config: EpochConfig,
     ) -> None:
-        # survival of the fittest
-        surviver_genomes, surviver_fitness, surviver_valids = elitist(
+        # get parent candidates
+        parent_genomes, _, _ = elitist(
             genomes=self.genomes,
             fitness=self.fitness,
             valids=self.valids,
-            num_elites=config.num_survivors,
+            num_elites=config.num_parents,
         )
+        # crossover
+        child_genomes = deterministic_isolated_mating(parent_genomes, crossover_random)
+        mutated_genomes = mutate_population(population=child_genomes, m=8)
 
         # create new individuals
-        n = self.size - config.num_survivors
-        new_genomes = generate_cluster_population(
-            size=n, n_nurses=problem.nbr_nurses, n_patients=problem.nbr_patients
+        new_genomes_cluster = generate_cluster_population(
+            size=config.num_new_clustered_individuals,
+            n_nurses=problem.nbr_nurses,
+            n_patients=problem.nbr_patients,
         )
-        new_fitness, new_valids = evaluate_population(new_genomes)
+        new_genomes_cluster = mutate_population(population=new_genomes_cluster, m=8)
+        new_genomes_random = generate_random_population(
+            size=config.num_new_random_individuals,
+            n_nurses=problem.nbr_nurses,
+            n_patients=problem.nbr_patients,
+        )
+        new_genomes_random = mutate_population(population=new_genomes_random, m=8)
 
-        # mutate part of survived genomes
-        y = config.num_survivors - config.num_mutators
-        mutated_genomes = mutate_population(population=surviver_genomes[y:], m=8)
-        mutated_fitness, mutated_valids = evaluate_population(mutated_genomes)
+        # combine all genomes
+        total_genomes = np.vstack(
+            (parent_genomes, new_genomes_cluster, new_genomes_random, mutated_genomes)
+        )
+        total_fitness, total_valids = evaluate_population(total_genomes)
+        # survival of the fittest
+        surviver_genomes, surviver_fitness, surviver_valids = elitist(
+            genomes=total_genomes,
+            fitness=total_fitness,
+            valids=total_valids,
+            num_elites=self.size,
+        )
 
         # update population
-        self.genomes = np.vstack((surviver_genomes[:y], mutated_genomes, new_genomes))
-        self.fitness = np.vstack((surviver_fitness[:y], mutated_fitness, new_fitness))
-        self.valids = np.vstack((surviver_valids[:y], mutated_valids, new_valids))
+        self.genomes = surviver_genomes
+        self.fitness = surviver_fitness
+        self.valids = surviver_valids
 
         # update epoch number
         self.epoch_number += 1
@@ -109,7 +129,11 @@ class GeneticAlgorithm:
 def main():
     ga = GeneticAlgorithm(size=100)
 
-    epoch_config = EpochConfig(num_survivors=95, num_mutators=94)
+    epoch_config = EpochConfig(
+        num_parents=20,
+        num_new_clustered_individuals=2,
+        num_new_random_individuals=4,
+    )
 
     for i in range(300):
         ga.epoch(epoch_config)
@@ -118,6 +142,8 @@ def main():
             ga.sort_population_()
             print(i, ga.fitness[0][0])
 
+    ga.sort_population_()
+    print(f"fitness {ga.fitness[0][0]}")
     problem.problem.visualize_solution(ga.genomes[0])
 
 

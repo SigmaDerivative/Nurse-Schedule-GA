@@ -47,8 +47,16 @@ def crossover_random(
 def deterministic_isolated_mating(
     population: np.ndarray, crossover_function: Callable[[Any], np.ndarray]
 ) -> np.ndarray:
-    """Recieves a part of the population and mate every other genome"""
-    pass
+    """Recieves a population and mate every other genome"""
+    if population.shape[0] % 2 != 0:
+        raise ValueError("Population size must be even")
+    new_population = np.zeros_like(population)
+    for i in range(0, population.shape[0], 2):
+        child1, child2 = crossover_function(population[i], population[i + 1])
+        new_population[i] = child1
+        new_population[i + 1] = child2
+
+    return new_population
 
 
 def stochastic_isolated_mating(
