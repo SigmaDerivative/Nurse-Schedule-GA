@@ -3,6 +3,7 @@ import numpy as np
 from numba import njit
 
 import problem
+from evaluations import evaluate
 
 
 # --- RANDOM INTRA MUTATIONS ---
@@ -179,6 +180,20 @@ def far_single_swap(genome: np.ndarray, m: int) -> np.ndarray:
     return genome
 
 
+def close_multi_swap(genome: np.ndarray, m: int, max: int) -> np.ndarray:
+    """Swap a patient with a close patient.
+    m is the number of closest patients to consider.
+    max is the maximum number of patients to swap."""
+    pass
+
+
+def far_multi_swap(genome: np.ndarray, m: int, max: int) -> np.ndarray:
+    """Swap a patient with a close patient.
+    m is the number of furthest patients to consider.
+    max is the maximum number of patients to swap."""
+    pass
+
+
 def time_close_single_swap(genome: np.ndarray, m: int) -> np.ndarray:
     """Swap a patient with another patient with close start time. m is the number of patients to consider."""
     pass
@@ -202,11 +217,26 @@ def delay_late_starts(genome: np.ndarray) -> np.ndarray:
 # --- LARGE NEIGHBORHOOD ---
 
 
-def destroy_path():
-    pass
+@njit
+def destroy_path(genome: np.ndarray) -> np.ndarray:
+    path_to_destroy = np.random.randint(0, genome.shape[0])
+    genome[path_to_destroy, :] = 0
+    return genome
 
 
-def destroy_random():
+@njit
+def destroy_random(genome: np.ndarray, min: int, max: int) -> np.ndarray:
+    """Destroy a random number of patients between min and max."""
+    to_destroy = np.random.randint(min, max)
+    patients = np.random.choice(genome.shape[1], to_destroy, replace=False)
+    for patient in patients:
+        patient_idx_ = np.where(genome == patient)
+        patient_idx = (patient_idx_[0][0], patient_idx_[1][0])
+        genome[patient_idx] = 0
+    return genome
+
+
+def destroy_violations():
     pass
 
 
@@ -307,6 +337,56 @@ def repair_greedy(genome: np.ndarray) -> np.ndarray:
 # permorm some mutations, evaluate and keep if better
 
 
+@njit
+def small_local_search(genome: np.ndarray, iterations: int) -> np.ndarray:
+    """Perform some mutations, evaluate and keep if better reset if worse."""
+    original_fitness = evaluate(genome)
+    for _ in range(iterations):
+        genome_ = genome.copy()
+        mut_type = np.random.randint(0, 7)
+        if mut_type == 0:
+            genome_ = shuffle_path(genome)
+        elif mut_type == 1:
+            genome_ = random_multi_swap(genome)
+        elif mut_type == 2:
+            genome_ = close_single_swap(genome, m=4)
+        elif mut_type == 3:
+            genome_ = far_single_swap(genome, m=4)
+        elif mut_type == 4:
+            genome_ = close_single_swap(genome, m=2)
+            genome_ = far_single_swap(genome_, m=2)
+        fitness = evaluate(genome_)
+        if fitness < original_fitness:
+            genome[:] = genome_[:]
+            original_fitness = fitness
+    return genome
+
+
+@njit
+def large_local_search(genome: np.ndarray, iterations: int) -> np.ndarray:
+    """Perform some mutations, evaluate and keep if better don't reset if worse."""
+    original_fitness = evaluate(genome)
+    genome_ = genome.copy()
+    for _ in range(iterations):
+        mut_type = np.random.randint(0, 7)
+        if mut_type == 0:
+            genome_ = shuffle_path(genome)
+        elif mut_type == 1:
+            genome_ = random_multi_swap(genome)
+        elif mut_type == 2:
+            genome_ = close_single_swap(genome, m=4)
+        elif mut_type == 3:
+            genome_ = far_single_swap(genome, m=4)
+        elif mut_type == 4:
+            genome_ = close_single_swap(genome, m=2)
+            genome_ = far_single_swap(genome_, m=2)
+        fitness = evaluate(genome_)
+        if fitness < original_fitness:
+            genome[:] = genome_[:]
+            original_fitness = fitness
+    return genome
+
+
 # --- COMBINED MUTATIONS ---
 
 
@@ -316,9 +396,9 @@ def mutate_population(population: np.ndarray, m: int) -> np.ndarray:
     # genome_size = population.shape[1]
     for idx, genome in enumerate(population):
         # select mutation type
-        mut_type = np.random.randint(0, 7)
+        mut_type = np.random.randint(0, 8)
         if mut_type == 0:
-            genome_ = intra_move_swap(genome)
+            genome_ = small_local_search(genome, iterations=10)
         elif mut_type == 1:
             genome_ = roll_path(genome)
         elif mut_type == 2:
@@ -331,6 +411,10 @@ def mutate_population(population: np.ndarray, m: int) -> np.ndarray:
             genome_ = close_single_swap(genome, m=m)
         elif mut_type == 6:
             genome_ = far_single_swap(genome, m=m)
+        elif mut_type == 7:
+            genome_ = small_local_search(genome, iterations=50)
+        elif mut_type == 8:
+            genome_ = large_local_search(genome, iterations=25)
         population[idx, :] = genome_
     return population
 

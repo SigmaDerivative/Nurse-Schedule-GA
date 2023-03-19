@@ -20,6 +20,7 @@ class EpochConfig:
     repair_function: Callable[[Any], np.ndarray]
     n_children: int
     mate_elite_prob_factor: float = 2.0
+    mutation_m: int = 4
 
 
 class GeneticAlgorithm:
@@ -92,11 +93,15 @@ class GeneticAlgorithm:
             new_genomes_cluster = generate_cluster_population(
                 size=config.num_new_clustered_individuals
             )
-            new_genomes_cluster = mutate_population(population=new_genomes_cluster, m=8)
+            new_genomes_cluster = mutate_population(
+                population=new_genomes_cluster, m=config.mutation_m
+            )
         new_genomes_random = generate_random_population(
             size=config.num_new_random_individuals
         )
-        new_genomes_random = mutate_population(population=new_genomes_random, m=8)
+        new_genomes_random = mutate_population(
+            population=new_genomes_random, m=config.mutation_m
+        )
 
         # combine all genomes
         if config.num_new_clustered_individuals > 0:
