@@ -38,6 +38,7 @@ def main(cfg: DictConfig) -> float:
     best_fitness = ga.fitness[0][0]
     print(f"fitness {best_fitness}")
     print(f"solution {solution_to_list(ga.genomes[0])}")
+    print(f"valid {ga.valids[0]}")
     problem.problem.visualize_solution(ga.genomes[0])
 
     return best_fitness

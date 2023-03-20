@@ -238,35 +238,32 @@ def destroy_random(genome: np.ndarray, min: int, max: int) -> np.ndarray:
 
 def destroy_violations(genome: np.ndarray) -> np.ndarray:
     for nurse_path in genome:
+        to_destroy = []
         nurse_used_capacity = 0
-        tot_time = 0.0
+        travel_time = 0.0
         prev_spot_idx = 0
+
+        cur_time = 0.0
 
         used_nurse_path = nurse_path[np.where(nurse_path != 0)]
 
-        to_destroy = []
-
         for patient_id in used_nurse_path:
 
-            tot_time += problem.travel_times[prev_spot_idx, patient_id]
+            travel_time += problem.travel_times[prev_spot_idx, patient_id]
+            cur_time += travel_time
 
-            if tot_time < problem.patients[patient_id - 1, 3]:
-                tot_time = problem.patients[patient_id - 1, 3]
-            elif tot_time > problem.patients[patient_id - 1, 4]:
-                # time window is not met
+            if cur_time < problem.patients[patient_id - 1, 3]:
+                cur_time = problem.patients[patient_id - 1, 3]
+            elif cur_time > problem.patients[patient_id - 1, 4]:
                 to_destroy.append(patient_id)
 
-            # add service time
-            tot_time += problem.patients[patient_id - 1, 5]
-            # add used capacity
+            cur_time += problem.patients[patient_id - 1, 5]
             nurse_used_capacity += problem.patients[patient_id - 1, 2]
 
-            # penalize if time is after end time
-            if tot_time > problem.patients[patient_id - 1, 4]:
+            if cur_time > problem.patients[patient_id - 1, 4]:
                 if patient_id not in to_destroy:
                     to_destroy.append(patient_id)
 
-            # update prev spot
             prev_spot_idx = patient_id
 
         # penalize if capacity is exceeded
@@ -274,10 +271,21 @@ def destroy_violations(genome: np.ndarray) -> np.ndarray:
             if patient_id not in to_destroy:
                 to_destroy.append(patient_id)
 
-        for patient_id in to_destroy:
-            patient_idx_ = np.where(genome == patient_id)
-            patient_idx = (patient_idx_[0][0], patient_idx_[1][0])
-            genome[patient_idx] = 0
+        travel_time += problem.travel_times[prev_spot_idx, 0]
+        cur_time += problem.travel_times[prev_spot_idx, 0]
+        if cur_time > problem.depot_return_time:
+            if patient_id not in to_destroy:
+                to_destroy.append(patient_id)
+
+        # penalize if capacity is exceeded
+        if nurse_used_capacity > problem.capacity_nurse:
+            if patient_id not in to_destroy:
+                to_destroy.append(patient_id)
+
+    for patient_id in to_destroy:
+        patient_idx_ = np.where(genome == patient_id)
+        patient_idx = (patient_idx_[0][0], patient_idx_[1][0])
+        genome[patient_idx] = 0
 
     return genome
 
@@ -403,7 +411,7 @@ def small_local_search(genome: np.ndarray, iterations: int) -> np.ndarray:
     original_fitness = evaluate(genome)
     for _ in range(iterations):
         genome_ = genome.copy()
-        mut_type = np.random.randint(0, 7)
+        mut_type = np.random.randint(0, 8)
         if mut_type == 0:
             genome_ = shuffle_path(genome)
         elif mut_type == 1:
@@ -421,6 +429,9 @@ def small_local_search(genome: np.ndarray, iterations: int) -> np.ndarray:
         elif mut_type == 6:
             genome_ = destroy_violations(genome)
             genome_ = repair_random(genome_)
+        elif mut_type == 7:
+            genome_ = destroy_violations(genome)
+            genome_ = repair_random_uniform(genome_)
         fitness = evaluate(genome_)
         if fitness < original_fitness:
             genome[:] = genome_[:]
@@ -461,9 +472,9 @@ def mutate_population(population: np.ndarray, m: int) -> np.ndarray:
     # genome_size = population.shape[1]
     for idx, genome in enumerate(population):
         # select mutation type
-        mut_type = np.random.randint(0, 10)
+        mut_type = np.random.randint(0, 13)
         if mut_type == 0:
-            genome_ = small_local_search(genome, iterations=10)
+            genome_ = small_local_search(genome, iterations=6)
         elif mut_type == 1:
             genome_ = roll_path(genome)
         elif mut_type == 2:
@@ -477,12 +488,17 @@ def mutate_population(population: np.ndarray, m: int) -> np.ndarray:
         elif mut_type == 6:
             genome_ = far_single_swap(genome, m=m)
         elif mut_type == 7:
-            genome_ = small_local_search(genome, iterations=50)
+            genome_ = small_local_search(genome, iterations=15)
         elif mut_type == 8:
-            genome_ = large_local_search(genome, iterations=25)
+            genome_ = large_local_search(genome, iterations=12)
         elif mut_type == 9:
             genome_ = destroy_violations(genome)
             genome_ = repair_greedy(genome_)
+        elif mut_type == 10:
+            genome_ = destroy_violations(genome)
+            genome_ = repair_random_uniform(genome_)
+        else:
+            genome_ = genome
         population[idx, :] = genome_
     return population
 

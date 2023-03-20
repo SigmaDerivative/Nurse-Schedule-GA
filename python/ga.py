@@ -25,7 +25,7 @@ class EpochConfig:
 
 class GeneticAlgorithm:
     def __init__(self, size: int) -> None:
-        genomes = generate_random_population(size=size)
+        genomes = generate_cluster_population(size=size)
         fitness, valids = evaluate_population(genomes)
         self.genomes = genomes
         self.fitness = fitness

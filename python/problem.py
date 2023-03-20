@@ -9,6 +9,7 @@ capacity_nurse = problem.capacity_nurse
 patients = problem.numpy_patients
 list_patients = problem.list_patients
 coordinates = patients[:, :2]
+depot_return_time = problem.depot["return_time"]
 
 start_after_end_penalty = 3
 end_after_end_penalty = 3

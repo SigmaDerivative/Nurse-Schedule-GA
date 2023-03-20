@@ -5,7 +5,7 @@ hydra:
     chdir: True
 
 size: 50
-num_epochs: 1_000
+num_epochs: 200
 num_parallell: 2
 print_num: 25
 

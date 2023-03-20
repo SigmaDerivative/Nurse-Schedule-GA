@@ -31,9 +31,12 @@ def evaluate(
         # calculate used nurse capacity
         nurse_used_capacity = 0
         # calculate time
-        tot_time = 0.0
+        travel_time = 0.0
         # add depot to start
         prev_spot_idx = 0
+
+        # counter for current time
+        cur_time = 0.0
 
         # get used nurse_path
         used_nurse_path = nurse_path[np.where(nurse_path != 0)]
@@ -41,31 +44,32 @@ def evaluate(
         # add patients to route
         for patient_id in used_nurse_path:
 
-            tot_time += problem.travel_times[prev_spot_idx, patient_id]
+            travel_time += problem.travel_times[prev_spot_idx, patient_id]
+            cur_time += travel_time
 
             # check if time window is met
             # penalty is both added if arrival after end time and if service ends after end time
-            if tot_time < problem.patients[patient_id - 1, 3]:
+            if cur_time < problem.patients[patient_id - 1, 3]:
                 # wait until start time
-                tot_time = problem.patients[patient_id - 1, 3]
-            elif tot_time > problem.patients[patient_id - 1, 4]:
+                cur_time = problem.patients[patient_id - 1, 3]
+            elif cur_time > problem.patients[patient_id - 1, 4]:
                 # penalize if time window is not met
                 if penalize_invalid:
                     fitness += (
-                        tot_time - problem.patients[patient_id - 1, 4]
+                        cur_time - problem.patients[patient_id - 1, 4]
                     ) * problem.start_after_end_penalty
                 is_valid = False
 
             # add service time
-            tot_time += problem.patients[patient_id - 1, 5]
+            cur_time += problem.patients[patient_id - 1, 5]
             # add used capacity
             nurse_used_capacity += problem.patients[patient_id - 1, 2]
 
             # penalize if time is after end time
-            if tot_time > problem.patients[patient_id - 1, 4]:
+            if cur_time > problem.patients[patient_id - 1, 4]:
                 if penalize_invalid:
                     fitness += (
-                        tot_time - problem.patients[patient_id - 1, 4]
+                        cur_time - problem.patients[patient_id - 1, 4]
                     ) * problem.end_after_end_penalty
                 is_valid = False
 
@@ -80,10 +84,18 @@ def evaluate(
                 ) * problem.capacity_penalty
             is_valid = False
 
+        # add depot to end
+        travel_time += problem.travel_times[prev_spot_idx, 0]
+        cur_time += problem.travel_times[prev_spot_idx, 0]
+        # penalize if depot return time not met
+        if cur_time > problem.depot_return_time:
+            if penalize_invalid:
+                fitness += (
+                    cur_time - problem.depot_return_time
+                ) * problem.start_after_end_penalty
+            is_valid = False
         # add time to fitness
-        fitness += tot_time
-    if is_valid:
-        fitness -= 10000
+        fitness += travel_time
 
     return fitness, is_valid
 
