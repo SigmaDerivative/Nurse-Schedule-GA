@@ -398,7 +398,6 @@ def repair_greedy(genome: np.ndarray) -> np.ndarray:
 # permorm some mutations, evaluate and keep if better
 
 
-@njit
 def small_local_search(genome: np.ndarray, iterations: int) -> np.ndarray:
     """Perform some mutations, evaluate and keep if better reset if worse."""
     original_fitness = evaluate(genome)
