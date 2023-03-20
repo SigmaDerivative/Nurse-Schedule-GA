@@ -21,6 +21,7 @@ class EpochConfig:
     n_children: int
     mate_elite_prob_factor: float = 2.0
     mutation_m: int = 4
+    penalize_invalid: bool = True
 
 
 class GeneticAlgorithm:
@@ -117,7 +118,9 @@ class GeneticAlgorithm:
             total_genomes = np.vstack(
                 (parent_genomes, new_genomes_random, mutated_genomes)
             )
-        total_fitness, total_valids = evaluate_population(total_genomes)
+        total_fitness, total_valids = evaluate_population(
+            total_genomes, config.penalize_invalid
+        )
         # survival of the fittest
         surviver_genomes, surviver_fitness, surviver_valids = elitist(
             genomes=total_genomes,
