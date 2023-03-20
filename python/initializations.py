@@ -74,7 +74,7 @@ def generate_cluster_genome() -> np.ndarray:
     """
     genome = np.zeros((problem.nbr_nurses, problem.nbr_patients), dtype=np.int16)
     # randomize how many clusters
-    n_clusters = np.random.randint(problem.nbr_nurses // 1.3, problem.nbr_nurses + 1)
+    n_clusters = np.random.randint(problem.nbr_nurses // 1.35, problem.nbr_nurses + 1)
     # generate clusters with k nearest neighbors
     # settings for faster runtime
     neigh = KMeans(n_clusters=n_clusters, n_init=1, max_iter=25).fit(

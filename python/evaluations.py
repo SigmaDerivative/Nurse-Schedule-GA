@@ -82,16 +82,20 @@ def evaluate(
 
         # add time to fitness
         fitness += tot_time
+    if is_valid:
+        fitness -= 10000
 
     return fitness, is_valid
 
 
 @njit
-def evaluate_population(genomes: np.ndarray) -> np.ndarray:
+def evaluate_population(
+    genomes: np.ndarray, penalize_invalid: bool = True
+) -> np.ndarray:
     fitness = np.empty((genomes.shape[0], 1), dtype=np.float64)
     valid = np.empty((genomes.shape[0], 1), dtype=np.bool_)
     for idx, genome in enumerate(genomes):
-        fitness_, valid_ = evaluate(genome, penalize_invalid=True)
+        fitness_, valid_ = evaluate(genome, penalize_invalid=penalize_invalid)
         fitness[idx, 0] = fitness_
         valid[idx, 0] = valid_
     return fitness, valid

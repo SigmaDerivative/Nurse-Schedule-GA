@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 import problem
 from ga import GeneticAlgorithm, EpochConfig
 from mutations import repair_random, repair_greedy
+from utils import solution_to_list
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")
@@ -36,6 +37,7 @@ def main(cfg: DictConfig) -> float:
     ga.sort_population_()
     best_fitness = ga.fitness[0][0]
     print(f"fitness {best_fitness}")
+    print(f"solution {solution_to_list(ga.genomes[0])}")
     problem.problem.visualize_solution(ga.genomes[0])
 
     return best_fitness
