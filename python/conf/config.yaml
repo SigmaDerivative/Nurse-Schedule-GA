@@ -5,7 +5,7 @@ hydra:
     chdir: True
 
 size: 36
-num_epochs: 100
+num_epochs: 1_300
 num_parallell: 2
 print_num: 25
 
@@ -16,5 +16,5 @@ epoch:
   n_destroys: 1
   repair_function: greedy # unused
   n_children: 40
-  mate_elite_prob_factor: 4.0
+  mate_elite_prob_factor: 3.0
   un_penalized_epochs: 0

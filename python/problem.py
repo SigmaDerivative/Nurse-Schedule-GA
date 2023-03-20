@@ -1,7 +1,7 @@
 from problem_setup import Problem
 
 # PROBLEM SETUP
-problem = Problem("data/train_0.json")
+problem = Problem("data/train_1.json")
 nbr_nurses = problem.nbr_nurses
 nbr_patients = problem.nbr_patients
 travel_times = problem.travel_times
@@ -11,6 +11,6 @@ list_patients = problem.list_patients
 coordinates = patients[:, :2]
 depot_return_time = problem.depot["return_time"]
 
-start_after_end_penalty = 2
-end_after_end_penalty = 2
-capacity_penalty = 2
+start_after_end_penalty = 3
+end_after_end_penalty = 3
+capacity_penalty = 3

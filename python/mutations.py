@@ -282,60 +282,6 @@ def destroy_violations(genome: np.ndarray) -> np.ndarray:
     return genome
 
 
-# def destroy_violations_stochastic(genome: np.ndarray) -> np.ndarray:
-#     for nurse_path in genome:
-#         to_destroy = []
-#         nurse_used_capacity = 0
-#         travel_time = 0.0
-#         prev_spot_idx = 0
-
-#         cur_time = 0.0
-
-#         used_nurse_path = nurse_path[np.where(nurse_path != 0)]
-
-#         for patient_id in used_nurse_path:
-
-#             travel_time += problem.travel_times[prev_spot_idx, patient_id]
-#             cur_time += travel_time
-
-#             if cur_time < problem.patients[patient_id - 1, 3]:
-#                 cur_time = problem.patients[patient_id - 1, 3]
-#             elif cur_time > problem.patients[patient_id - 1, 4]:
-#                 to_destroy.append(patient_id)
-
-#             cur_time += problem.patients[patient_id - 1, 5]
-#             nurse_used_capacity += problem.patients[patient_id - 1, 2]
-
-#             if cur_time > problem.patients[patient_id - 1, 4]:
-#                 if patient_id not in to_destroy:
-#                     to_destroy.append(patient_id)
-
-#             prev_spot_idx = patient_id
-
-#         # penalize if capacity is exceeded
-#         if nurse_used_capacity > problem.capacity_nurse:
-#             if patient_id not in to_destroy:
-#                 to_destroy.append(patient_id)
-
-#         travel_time += problem.travel_times[prev_spot_idx, 0]
-#         cur_time += problem.travel_times[prev_spot_idx, 0]
-#         if cur_time > problem.depot_return_time:
-#             if patient_id not in to_destroy:
-#                 to_destroy.append(patient_id)
-
-#         # penalize if capacity is exceeded
-#         if nurse_used_capacity > problem.capacity_nurse:
-#             if patient_id not in to_destroy:
-#                 to_destroy.append(patient_id)
-
-#     for patient_id in to_destroy:
-#         patient_idx_ = np.where(genome == patient_id)
-#         patient_idx = (patient_idx_[0][0], patient_idx_[1][0])
-#         genome[patient_idx] = 0
-
-#     return genome
-
-
 def repair_random(genome: np.ndarray) -> np.ndarray:
     """Fill in missing patients at random spots."""
     n_patients = genome.shape[1]
@@ -535,7 +481,7 @@ def mutate_population(population: np.ndarray, m: int) -> np.ndarray:
         # select mutation type
         mut_type = np.random.randint(0, 12)
         if mut_type == 0:
-            genome_ = small_local_search(genome, iterations=15)
+            genome_ = small_local_search(genome, iterations=8)
         elif mut_type == 1:
             genome_ = roll_path(genome)
         elif mut_type == 2:
@@ -549,9 +495,9 @@ def mutate_population(population: np.ndarray, m: int) -> np.ndarray:
         elif mut_type == 6:
             genome_ = far_single_swap(genome, m=m)
         elif mut_type == 7:
-            genome_ = small_local_search(genome, iterations=40)
+            genome_ = small_local_search(genome, iterations=14)
         elif mut_type == 8:
-            genome_ = large_local_search(genome, iterations=20)
+            genome_ = large_local_search(genome, iterations=10)
         elif mut_type == 9:
             genome_ = destroy_violations(genome)
             genome_ = repair_greedy(genome_)

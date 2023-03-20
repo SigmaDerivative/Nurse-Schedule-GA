@@ -7,7 +7,12 @@ import problem
 from initializations import generate_random_population, generate_cluster_population
 from evaluations import evaluate_population
 from population_manage import elitist, sort_population
-from mutations import mutate_population, repair_random, repair_greedy
+from mutations import (
+    mutate_population,
+    repair_random,
+    repair_greedy,
+    repair_random_uniform,
+)
 from crossover import deterministic_isolated_mating, stochastic_elitist_mating
 
 
@@ -69,13 +74,15 @@ class GeneticAlgorithm:
         )
 
         # random repair function
-        if np.random.uniform() < 0.5:
+        if np.random.uniform() < 0.4:
             repair_func = repair_random
-        else:
+        elif np.random.uniform() < 0.4:
             repair_func = repair_greedy
+        else:
+            repair_func = repair_random_uniform
 
         # crossover
-        if np.random.uniform() < 0.5:
+        if np.random.uniform() < 0.4:
             child_genomes = deterministic_isolated_mating(
                 parent_genomes, config.n_destroys, repair_func
             )
@@ -87,7 +94,7 @@ class GeneticAlgorithm:
                 config.n_children,
                 config.mate_elite_prob_factor,
             )
-        mutated_genomes = mutate_population(population=child_genomes, m=8)
+        mutated_genomes = mutate_population(population=child_genomes, m=5)
 
         # create new individuals
         if config.num_new_clustered_individuals > 0:
