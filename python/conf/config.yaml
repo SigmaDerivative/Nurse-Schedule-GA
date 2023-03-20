@@ -4,16 +4,17 @@ hydra:
   job:
     chdir: True
 
-size: 50
-num_epochs: 200
+size: 36
+num_epochs: 100
 num_parallell: 2
 print_num: 25
 
 epoch:
   num_parents: 24
-  new_clustered: 4
+  new_clustered: 2
   new_random: 4
   n_destroys: 1
   repair_function: greedy # unused
-  n_children: 34
+  n_children: 40
   mate_elite_prob_factor: 4.0
+  un_penalized_epochs: 0

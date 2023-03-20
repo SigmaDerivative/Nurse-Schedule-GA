@@ -45,7 +45,7 @@ def evaluate(
         for patient_id in used_nurse_path:
 
             travel_time += problem.travel_times[prev_spot_idx, patient_id]
-            cur_time += travel_time
+            cur_time += problem.travel_times[prev_spot_idx, patient_id]
 
             # check if time window is met
             # penalty is both added if arrival after end time and if service ends after end time

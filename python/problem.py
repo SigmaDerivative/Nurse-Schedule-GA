@@ -11,6 +11,6 @@ list_patients = problem.list_patients
 coordinates = patients[:, :2]
 depot_return_time = problem.depot["return_time"]
 
-start_after_end_penalty = 3
-end_after_end_penalty = 3
-capacity_penalty = 3
+start_after_end_penalty = 2
+end_after_end_penalty = 2
+capacity_penalty = 2
