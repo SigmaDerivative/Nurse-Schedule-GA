@@ -145,42 +145,6 @@ class GeneticAlgorithm:
         self.epoch_number += 1
 
 
-# @njit
-# def njit_run(size: int, num_epochs: int, num_survivors: int) -> None:
-#     genomes = generate_random_population(
-#         size=size, n_nurses=nbr_nurses, n_patients=nbr_patients
-#     )
-#     fitness, valids = evaluate_population(genomes)
-
-#     for _ in range(num_epochs):
-#         # survival of the fittest
-#         surviver_genomes, surviver_fitness, surviver_valids = elitist(
-#             genomes=genomes,
-#             fitness=fitness,
-#             valids=valids,
-#             num_elites=num_survivors,
-#         )
-
-#         # create new individuals
-#         n = size - num_survivors
-#         new_genomes = generate_random_population(
-#             size=n, n_nurses=nbr_nurses, n_patients=nbr_patients
-#         )
-#         new_fitness, new_valids = evaluate_population(new_genomes)
-
-#         # update population
-#         genomes[:num_survivors] = surviver_genomes
-#         genomes[num_survivors:] = new_genomes
-#         fitness[:num_survivors] = surviver_fitness
-#         fitness[num_survivors:] = new_fitness
-#         valids[:num_survivors] = surviver_valids
-#         valids[num_survivors:] = new_valids
-
-
-# def main_njit(pop_size: int):
-#     njit_run(size=pop_size, num_epochs=10_000, num_survivors=25)
-
-
 @dataclass
 class TrainConfig:
     pop_size: int

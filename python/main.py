@@ -1,6 +1,3 @@
-import time
-
-import numpy as np
 from tqdm import tqdm
 import hydra
 from omegaconf import DictConfig
@@ -9,19 +6,10 @@ import problem
 from ga import GeneticAlgorithm, EpochConfig
 from mutations import repair_random, repair_greedy
 from utils import solution_to_list
-from initializations import generate_random_genome
-from mutations import destroy_violations
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")
 def main(cfg: DictConfig) -> float:
-    # gen = generate_random_genome()
-    # problem.problem.visualize_solution(gen)
-    # print(f"solution {solution_to_list(gen)}")
-    # gen_ = destroy_violations(gen)
-    # problem.problem.visualize_solution(gen_)
-    # print(f"solution {solution_to_list(gen_)}")
-
     ga = GeneticAlgorithm(size=cfg.size)
 
     repair_function = {"random": repair_random, "greedy": repair_greedy}
@@ -51,20 +39,11 @@ def main(cfg: DictConfig) -> float:
     print(f"fitness {best_fitness}")
     print(f"solution {solution_to_list(ga.genomes[0])}")
     print(f"valid {ga.valids[0]}")
+    problem.problem.print_solution(ga.genomes[0], best_fitness, ga.valids[0][0])
     problem.problem.visualize_solution(ga.genomes[0])
 
     return best_fitness
 
 
 if __name__ == "__main__":
-
-    # import cProfile, pstats
-
-    # profiler = cProfile.Profile()
-    # profiler.enable()
-
     main()
-
-    # profiler.disable()
-    # stats = pstats.Stats(profiler)
-    # stats.dump_stats("profile/main.prof")
