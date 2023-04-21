@@ -3,3 +3,6 @@ python/test.ipynb
 python/__pycache__
 profile
 outputs
+data/test_0.json
+data/test_1.json
+data/test_2.json
